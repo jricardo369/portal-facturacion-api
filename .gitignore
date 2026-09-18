@@ -1,0 +1,64 @@
+# ===== IntelliJ IDEA / JetBrains =====
+.idea/
+.idea_modules/
+*.iml
+*.ipr
+*.iws
+
+# ===== VSCode =====
+.vscode/
+
+# ===== Eclipse / Spring Tool Suite (STS) =====
+.classpath
+.project
+.settings/
+.factorypath
+.metadata/
+.externalToolBuilders/
+.sts4-cache/
+.apt_generated
+.apt_generated_tests
+bin/
+
+# ===== NetBeans =====
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# ===== Fleet =====
+.fleet/
+
+# ===== Compilacion (Maven / Gradle) =====
+target/
+build/
+.gradle/
+.m2/
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== Logs =====
+logs/
+*.log
+
+# ===== Variables de entorno / secretos =====
+.env
+.env.*
+!.env.example
+!.env.prod.example
+
+# ===== Bases de datos locales =====
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+# Nota: las migraciones de Flyway (db/migration/*.sql) SÍ deben subirse
+
+# ===== Sistema operativo =====
+.DS_Store
+Thumbs.db
+
+# ===== Spring Boot =====
+spring-boot-devtools/

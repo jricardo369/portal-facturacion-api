@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    container_name: portal-facturacion-api
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - /Users/joser.vazquez/config-apps/portal-facturacion/configuracion-general.yml:/opt/tomcat/assets/configuracion-general.yml:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-facturacion_db}
+      DB_USERNAME: ${DB_USERNAME:-ricardo}
+      DB_PASSWORD: ${DB_PASSWORD:-Ricardo16}
+      JWT_SECRET: ${JWT_SECRET:-V7x9K2mP8qR4sT6wY1nB3cD5eF7gH9jL0kM2pQ4rS6uWOso}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-1800000}
+      JWT_ISSUER: ${JWT_ISSUER:-portal-facturacion}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-portal-facturacion-api}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:4200}
+      SERVER_PORT: 8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
