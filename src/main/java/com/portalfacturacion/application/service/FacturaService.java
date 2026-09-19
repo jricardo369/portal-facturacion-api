@@ -105,6 +105,15 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
     return repository.existsByNoTicket(noTicket.trim());
   }
 
+  @Transactional(readOnly = true)
+  public boolean existePorSerieYFolio(String serie, String folio) {
+    if (folio == null || folio.isBlank()) {
+      return false;
+    }
+    String serieLimpia = serie == null ? "" : serie.trim();
+    return repository.existsBySerieAndFolio(serieLimpia, folio.trim());
+  }
+
   @Override
   @Transactional
   public Factura actualizarPorId(Long idFactura, Factura cambios) {

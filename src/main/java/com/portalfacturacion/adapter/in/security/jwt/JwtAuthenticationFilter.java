@@ -52,9 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String path = request.getServletPath();
     return "/error".equals(path)
         || path.startsWith("/api/v1/auth/")
-        || path.startsWith("/api/v1/facturacion/datos-factura")
-        || path.startsWith("/api/v1/facturacion/factura")
-        || path.startsWith("/api/v1/facturacion/facturar")
+        || "/api/v1/facturacion/datos-factura".equals(path)
+        || "/api/v1/facturacion/factura".equals(path)
+        || "/api/v1/facturacion/facturar".equals(path)
         || path.startsWith("/api/v1/images")
         || path.startsWith("/v3/api-docs")
         || path.startsWith("/swagger-ui")

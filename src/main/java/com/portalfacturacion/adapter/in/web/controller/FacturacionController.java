@@ -53,11 +53,26 @@ public class FacturacionController {
     return ResponseEntity.ok(toResponse(service.facturar(toDomain(request))));
   }
 
+  @PostMapping("/refacturar")
+  @Operation(summary = "Refacturar: cancela la factura previa del ticket, inserta una nueva "
+      + "factura con UUID nuevo y actualiza el cliente si sus datos cambiaron")
+  public ResponseEntity<DatosFacturaResponse> refacturar(
+      @RequestBody DatosFacturaResponse request) {
+    return ResponseEntity.ok(toResponse(service.refacturar(toDomain(request))));
+  }
+
   @GetMapping("/factura")
   @Operation(summary = "Obtener factura por numero de ticket")
   public ResponseEntity<FacturaResponse> obtenerFacturaPorTicket(
       @RequestParam String numeroTicket) {
     return ResponseEntity.ok(toFacturaResponse(service.obtenerFacturaPorTicket(numeroTicket)));
+  }
+
+  @GetMapping("/factura/buscar")
+  @Operation(summary = "Buscar factura por no ticket o uuid, incluye datos del cliente")
+  public ResponseEntity<DatosFacturaResponse> buscarFacturaPorFiltro(
+      @RequestParam String filtro) {
+    return ResponseEntity.ok(toResponse(service.buscarFacturaPorFiltro(filtro)));
   }
 
   private DatosFactura toDomain(DatosFacturaResponse r) {

@@ -2,14 +2,17 @@ package com.portalfacturacion.application.service;
 
 import com.portalfacturacion.domain.exception.ClienteNoEncontradoException;
 import com.portalfacturacion.domain.exception.FacturaDuplicadaException;
+import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
 import com.portalfacturacion.domain.model.Cliente;
 import com.portalfacturacion.domain.model.DatosFactura;
 import com.portalfacturacion.domain.model.Factura;
 import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
-import com.portalfacturacion.application.service.PlantillaCorreoService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -76,6 +79,44 @@ public class FacturacionService {
     return facturaService.obtenerPorNoTicket(numeroTicket.trim());
   }
 
+  @Transactional(readOnly = true)
+  public DatosFactura buscarFacturaPorFiltro(String filtro) {
+    if (filtro == null || filtro.isBlank()) {
+      throw new IllegalArgumentException("El filtro es obligatorio");
+    }
+    String valor = filtro.trim();
+    Factura factura;
+    try {
+      factura = facturaService.obtenerPorNoTicket(valor);
+    } catch (FacturaNoEncontradaException ignored) {
+      try {
+        factura = facturaService.obtenerPorUuid(valor);
+      } catch (FacturaNoEncontradaException ex) {
+        throw new FacturaNoEncontradaException(
+            "No se encontro la factura con los datos proporcionados");
+      }
+    }
+    Cliente cliente = null;
+    if (factura.getRfc() != null && !factura.getRfc().isBlank()) {
+      try {
+        cliente = clienteService.obtenerPorRfc(factura.getRfc().trim());
+      } catch (ClienteNoEncontradoException ignored) {
+        cliente = null;
+      }
+    }
+    return new DatosFactura(toTicket(factura), cliente);
+  }
+
+  private Ticket toTicket(Factura factura) {
+    if (factura == null) {
+      return null;
+    }
+    return new Ticket(factura.getNoTicket(), factura.getTotal(), factura.getSubtotal(),
+        factura.getImpuesto(), factura.getEstatus(), null,
+        factura.getFecha(), factura.getFecha(), factura.getCliente(), null, null,
+        false, List.of(), List.of());
+  }
+
   @Transactional
   public DatosFactura facturar(DatosFactura datos) {
     if (datos == null || datos.getCliente() == null
@@ -100,6 +141,52 @@ public class FacturacionService {
     return new DatosFactura(datos.getTicket(), guardado);
   }
 
+  @Transactional
+  public DatosFactura refacturar(DatosFactura datos) {
+    if (datos == null || datos.getCliente() == null
+        || datos.getCliente().getRfc() == null
+        || datos.getCliente().getRfc().isBlank()) {
+      throw new IllegalArgumentException("Los datos del cliente y RFC son obligatorios para refacturar");
+    }
+    Cliente guardado = guardarClienteSiCambio(datos.getCliente());
+    Factura factura = insertarFacturaRefacturada(datos.getTicket(), guardado);
+    CorreoPreparado preparado = plantillas.construirCorreo("correo_factura.html",
+      "titulo=" + "Refacturación Oso Despierto",
+      "folio=" + factura.getFolio(),
+      "total=" + (factura.getTotal() != null ? factura.getTotal().toPlainString() : "0.00"),
+      "cliente=" + (factura.getCliente() != null ? factura.getCliente() : "Sin nombre"));
+    enviarCorreoTrasCommit(guardado.getCorreoElectronico(), preparado.asunto(), preparado.contenido());
+    return new DatosFactura(datos.getTicket(), guardado);
+  }
+
+  private Cliente guardarClienteSiCambio(Cliente datos) {
+    String rfc = datos.getRfc().trim();
+    try {
+      Cliente actual = clienteService.obtenerPorRfc(rfc);
+      if (hayCambiosEnCliente(actual, datos)) {
+        return clienteService.actualizarPorRfc(rfc, datos);
+      }
+      return actual;
+    } catch (ClienteNoEncontradoException ignored) {
+      return clienteService.crear(datos);
+    }
+  }
+
+  private boolean hayCambiosEnCliente(Cliente actual, Cliente datos) {
+    return !Objects.equals(actual.getRazonSocial(), datos.getRazonSocial())
+        || !Objects.equals(actual.getCalle(), datos.getCalle())
+        || !Objects.equals(actual.getNumExterior(), datos.getNumExterior())
+        || !Objects.equals(actual.getNumInterior(), datos.getNumInterior())
+        || !Objects.equals(actual.getReferencia(), datos.getReferencia())
+        || !Objects.equals(actual.getEstado(), datos.getEstado())
+        || !Objects.equals(actual.getMunicipio(), datos.getMunicipio())
+        || !Objects.equals(actual.getColonia(), datos.getColonia())
+        || !Objects.equals(actual.getCodigoPostal(), datos.getCodigoPostal())
+        || !Objects.equals(actual.getCorreoElectronico(), datos.getCorreoElectronico())
+        || !Objects.equals(actual.getRegimenFiscal(), datos.getRegimenFiscal())
+        || !Objects.equals(actual.getUsoFactura(), datos.getUsoFactura());
+  }
+
   private void enviarCorreoTrasCommit(String destinatario, String asunto, String contenido) {
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
       correo.enviarTextoPlano(destinatario, asunto, contenido);
@@ -121,8 +208,51 @@ public class FacturacionService {
     if (facturaService.existePorNoTicket(noTicket)) {
       throw new FacturaDuplicadaException("La factura ya ha sido generada para el ticket " + noTicket);
     }
+    return crearFactura(ticket, cliente, noTicket, noTicket, null);
+  }
+
+  private Factura insertarFacturaRefacturada(Ticket ticket, Cliente cliente) {
+    if (ticket == null || ticket.getNumeroTicket() == null || ticket.getNumeroTicket().isBlank()) {
+      throw new IllegalArgumentException("El numero de ticket es obligatorio para refacturar");
+    }
+    String noTicket = ticket.getNumeroTicket().trim();
+    cancelarFacturaPrevia(noTicket);
+    String nuevoFolio = generarFolioRefactura(noTicket);
+    return crearFactura(ticket, cliente, nuevoFolio, nuevoFolio, UUID.randomUUID().toString());
+  }
+
+  private void cancelarFacturaPrevia(String noTicket) {
+    try {
+      Factura previa = facturaService.obtenerPorNoTicket(noTicket);
+      if (previa != null && !"CANCELADA".equalsIgnoreCase(previa.getEstatus())) {
+        facturaService.eliminarPorId(previa.getIdFactura());
+      }
+    } catch (FacturaNoEncontradaException ignored) {
+    }
+  }
+
+  private String generarFolioRefactura(String noTicket) {
+    String base = noTicket;
+    String sufijo = "-R";
+    String folio = truncarFolio(base, sufijo);
+    int intento = 2;
+    while (facturaService.existePorSerieYFolio("", folio)) {
+      folio = truncarFolio(base, "-" + intento++);
+    }
+    return folio;
+  }
+
+  private String truncarFolio(String base, String sufijo) {
+    String candidato = base + sufijo;
+    if (candidato.length() <= 30) {
+      return candidato;
+    }
+    return base.substring(0, Math.max(1, 30 - sufijo.length())) + sufijo;
+  }
+
+  private Factura crearFactura(Ticket ticket, Cliente cliente, String folio, String noTicket, String uuid) {
     Factura factura = new Factura();
-    factura.setFolio(noTicket);
+    factura.setFolio(folio);
     factura.setSerie("");
     if (ticket.getFechaCierre() != null) {
       factura.setFecha(ticket.getFechaCierre());
@@ -139,8 +269,7 @@ public class FacturacionService {
     factura.setImpuesto(ticket.getImpuestos());
     factura.setTotal(ticket.getTotal());
     factura.setEstatus("Cargada");
-    factura.setUuid(null);
-    factura = facturaService.crear(factura);
-    return factura;
+    factura.setUuid(uuid);
+    return facturaService.crear(factura);
   }
 }
