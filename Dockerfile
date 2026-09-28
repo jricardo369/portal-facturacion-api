@@ -9,10 +9,9 @@ RUN mvn -q -DskipTests package
 FROM eclipse-temurin:21-jre-alpine AS runtime
 ENV SPRING_PROFILES_ACTIVE=prod
 RUN addgroup -S app && adduser -S app -G app
-RUN mkdir -p /opt/tomcat/assets
+RUN mkdir -p /opt/portal-facturacion-configs && chown app:app /opt/portal-facturacion-configs
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-RUN chown app:app /app/app.jar
+COPY --from=build --chown=app:app /app/target/*.jar app.jar
 USER app
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \

@@ -49,6 +49,11 @@ logs/
 !.env.example
 !.env.prod.example
 
+# ===== Configuración externa (credenciales FuDo, correo, BD, JWT) =====
+# Toda la conexión vive fuera del repo. Solo se versiona el ejemplo.
+configuracion-general.yml
+!configuracion-general.example.yml
+
 # ===== Bases de datos locales =====
 *.db
 *.sqlite

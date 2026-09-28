@@ -92,14 +92,18 @@ Solo se levanta la API; MySQL queda fuera (host):
 docker compose up --build
 ```
 
-El perfil `prod` importa `configuracion-general.yml` desde `/opt/tomcat/assets/configuracion-general.yml`. El archivo se monta como volumen desde el host:
+El perfil `prod` importa `configuracion-general.yml` desde `/opt/portal-facturacion-configs/configuracion-general.yml`
+(requerido: sin él la app no arranca). Toda la conexión —datasource, JWT, CORS, correo, FuDo—
+vive en ese archivo externo, nada queda en el repo. Se monta como volumen:
 
 ```yaml
 volumes:
-  - /Users/joser.vazquez/config-apps/portal-facturacion/configuracion-general.yml:/opt/tomcat/assets/configuracion-general.yml:ro
+  - ./configuracion-general.yml:/opt/portal-facturacion-configs/configuracion-general.yml:ro
 ```
 
-**No copies el archivo dentro del proyecto.** Docker solo necesita el volumen montado para leer las credenciales.
+Copia `configuracion-general.example.yml` → `configuracion-general.yml` (gitignored, `chmod 600`)
+y rellena los valores reales antes de `docker compose up --build`. En el servidor el archivo
+vive en `/opt/portal-facturacion-api/configuracion-general.yml`.
 
 Health: `GET http://localhost:8080/actuator/health`
 
@@ -235,3 +239,43 @@ Para ver logs:
 ```bash
 docker compose logs -f api
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Local (probar en tu Mac):
+# 1. rellena ./configuracion-general.yml (ya existe, chmod 600, con tus datos reales)
+# 2. levanta (buildea la imagen portal-facturacion-api-api):
+docker compose up --build
+# en 2ª terminal:
+curl http://localhost:8080/actuator/health
+Ojo: tu Docker Desktop estaba apagado y con ~1GB libre — enciéndelo y libera espacio o el chown/repackage vuelve a fallar con No space left.
+Prod / servidor (GHCR, como está diseñado):
+# Opción A — automática:
+git add -A && git commit -m "..." && git push origin main
+# Actions hace verify → build/push :sha-xxxx + :latest → SSH al EC2 → pull + up -d
+
+# Opción B — manual:
+export IMAGE_OWNER=$(echo tu-user | tr '[:upper:]' '[:lower:]') TAG=1.0.0
+echo $CR_PAT | docker login ghcr.io -u TU_USER --password-stdin
+docker build -t ghcr.io/$IMAGE_OWNER/portal-facturacion-api:$TAG .
+docker push ghcr.io/$IMAGE_OWNER/portal-facturacion-api:$TAG
+
+# En el EC2:
+cd /opt/portal-facturacion-api && git pull
+cp configuracion-general.example.yml configuracion-general.yml && chmod 600 configuracion-general.yml
+# ...rellena valores prod...
+TAG=1.0.0 IMAGE_OWNER=... APP_DOMAIN=... docker compose -f docker-compose.prod.yml pull
+TAG=1.0.0 IMAGE_OWNER=... APP_DOMAIN=... docker compose -f docker-compose.prod.yml up -d
+curl -sk https://tu-dominio/actuator/health

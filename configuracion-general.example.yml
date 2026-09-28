@@ -1,0 +1,44 @@
+# Plantilla — COPIAR a la ruta externa y rellenar valores reales. NO versionar el archivo real.
+# Local (Mac):  /Users/joser.vazquez/config-apps/portal-facturacion/configuracion-general.yml
+# Servidor:     /opt/portal-facturacion-configs/configuracion-general.yml  (montado en Docker)
+# Docker local: ./configuracion-general.yml (copia de esta plantilla, gitignored)
+# Permisos recomendados: chmod 600
+#
+# Toda la conexión vive aquí: datasource + jwt + cors + correo + fudo.
+# El repo (application-*.yml, compose, .env*) NO debe contener secretos.
+
+spring:
+  datasource:
+    url: jdbc:mysql://TU_DB_HOST:3306/TU_DB_NAME?createDatabaseIfNotExist=true&useSSL=true&allowPublicKeyRetrieval=false&serverTimezone=UTC
+    username: TU_DB_USERNAME
+    password: TU_DB_PASSWORD
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+app:
+  jwt:
+    secret: GENERA_UNO_DE_MINIMO_32_CARACTERES_ALEATORIOS
+    expiration-ms: 1800000
+    issuer: portal-facturacion
+    audience: portal-facturacion-api
+  cors:
+    allowed-origins: https://tudominio.com
+  fudo:
+    base-url: https://api.fu.do/v1alpha1
+    auth-url: https://auth.fu.do/api
+    api-key: TU_API_KEY
+    api-secret: TU_API_SECRET
+    timeout-ms: 8000
+    sale-include: items.product,payments.paymentMethod,customer,table
+  correo:
+    host: smtp.gmail.com
+    port: 587
+    username: tu@correo.com
+    password: TU_PASSWORD_CORREO
+    auth: true
+    starttls: true
+    timeout-ms: 8000
+    ruta-layouts: /opt/portal-facturacion-configs/html-mails
+    ruta-logo: https://tudominio.com/api/v1/images/logo.png
