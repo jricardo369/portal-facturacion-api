@@ -44,8 +44,12 @@ public class EnvioFacturaService implements EnviarFacturaUseCase {
   @Override
   public CorreoPreparado reenviarFactura(String correoElectronico, String numeroTicket) {
     Factura factura = facturaRepo.findByNoTicket(numeroTicket)
-        .orElseThrow(() -> new FacturaNoEncontradaException(
-          "No se encontro ninguna factura asociada al ticket: " + numeroTicket));
+        .orElseThrow(() -> {
+          log.warn("No se reenvia correo: la factura con el folio proporcionado no fue encontrada: {}", numeroTicket);
+          return new FacturaNoEncontradaException(
+            "La factura con el folio proporcionado no fue encontrada");
+        });
+    // El correo solo se envia si la factura fue encontrada.
     CorreoPreparado preparado = plantillas.construirCorreo("correo_factura.html",
       "titulo=" + "Facturación Oso Despierto",
       "folio=" + factura.getFolio(),
