@@ -11,10 +11,11 @@ name: build-push-deploy
 #   - GHCR_USER    : tu usuario de GitHub (dueño del PAT)
 #   - GHCR_PAT     : PAT clásico con scope read:packages (para `docker pull` en el EC2)
 #
-# EC2 (una sola vez, en /opt/portal-facturacion-api):
-#   - git clone del repo + `docker login ghcr.io`
-#   - archivo ./configuracion-general.yml (copia de configuracion-general.example.yml, chmod 600)
-#   - archivo ./.env.prod con IMAGE_OWNER / TAG / APP_DOMAIN
+# EC2 (una sola vez, NO versionado, chmod 600):
+#   - git clone del repo en /opt/portal-facturacion-api + `docker login ghcr.io`
+#   - archivo /opt/portal-facturacion-configs/configuracion-general.yml (copia de configuracion-general.example.yml)
+#   - archivo /opt/portal-facturacion-configs/.env.prod (copia de .env.prod.example: IMAGE_OWNER / APP_DOMAIN;
+#     TAG lo pone el workflow en cada deploy, lo que haya en el archivo se ignora)
 # ============================================================
 
 on:
@@ -114,20 +115,29 @@ jobs:
             fi
             export TAG=${{ needs.build-test-push.outputs.tag }}
             export IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-            # APP_DOMAIN sale de .env.prod en el servidor (Caddy). No exportarlo aquí.
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
-            docker compose -f docker-compose.prod.yml ps
+            # Infra (APP_DOMAIN) sale de /opt/portal-facturacion-configs/.env.prod en el servidor.
+            # TAG e IMAGE_OWNER los exporta el workflow y tienen prioridad sobre ese archivo.
+            ENV_FILE=/opt/portal-facturacion-configs/.env.prod
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "Falta $ENV_FILE (copia .env.prod.example ahí, chmod 600)"
+              exit 1
+            fi
+            COMPOSE="docker compose --env-file $ENV_FILE -f docker-compose.prod.yml"
+            $COMPOSE pull
+            $COMPOSE up -d --force-recreate
+            $COMPOSE ps
             # Verificación: falla el workflow si la app no está UP
+            # Nota: el puerto 8080 no está publicado al host (solo expose),
+            # por eso se consulta desde dentro del contenedor.
             for i in $(seq 1 12); do
-              if curl -fs http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+              if docker exec portal-facturacion-api wget -qO- http://localhost:8080/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
                 echo "API healthy"
                 break
               fi
               echo "esperando api... intento $i/12"
               sleep 10
               if [ "$i" = "12" ]; then
-                docker compose -f docker-compose.prod.yml logs --tail=100 api
+                $COMPOSE logs --tail=100 api
                 exit 1
               fi
             done
