@@ -2,6 +2,7 @@ name: build-push-deploy
 
 # ============================================================
 # CREDENCIALES FALTANTES — configurar antes de usar:
+# v29092026
 #
 # GitHub > Settings > Secrets and variables > Actions > Secrets:
 #   - EC2_HOST     : IP elástica o DNS del EC2 (ej: 3.85.1.2)
