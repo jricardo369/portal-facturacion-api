@@ -102,6 +102,7 @@ jobs:
           script: |
             set -e
             cd /opt/portal-facturacion-api
+            git config --global --add safe.directory /opt/portal-facturacion-api || true
             # Trae ramas + tags y deja el código exacto del commit que disparó el workflow
             git fetch origin --tags --force
             git checkout --force ${{ github.sha }}
