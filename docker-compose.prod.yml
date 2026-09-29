@@ -9,8 +9,8 @@ services:
       SERVER_PORT: 8080
     volumes:
       # Toda la conexión vive aquí. En el servidor debe existir
-      # /opt/portal-facturacion-api/configuracion-general.yml (chmod 600, no versionado).
-      - ./configuracion-general.yml:/opt/portal-facturacion-configs/configuracion-general.yml:ro
+      # /opt/portal-facturacion-configs/configuracion-general.yml (chmod 600, no versionado).
+      - /opt/portal-facturacion-configs/configuracion-general.yml:/opt/portal-facturacion-configs/configuracion-general.yml:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
