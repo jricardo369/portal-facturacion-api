@@ -279,3 +279,38 @@ cp configuracion-general.example.yml configuracion-general.yml && chmod 600 conf
 TAG=1.0.0 IMAGE_OWNER=... APP_DOMAIN=... docker compose -f docker-compose.prod.yml pull
 TAG=1.0.0 IMAGE_OWNER=... APP_DOMAIN=... docker compose -f docker-compose.prod.yml up -d
 curl -sk https://tu-dominio/actuator/health
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Personal Access Token (para que el EC2 pueda hacer docker pull)
+1. Tu foto perfil → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token (classic).
+2. Marca solo read:packages (si también quieres push manual desde tu PC, agrega write:packages).
+3. Cópialo, solo se muestra una vez. Ese es tu GHCR_PAT.
+2. Secrets del repo (6)
+Repo → Settings → Secrets and variables → Actions → New repository secret:
+- EC2_HOST: IP elástica o DNS del EC2
+- EC2_USER: ubuntu o ec2-user según AMI
+- EC2_SSH_KEY: contenido completo del .pem (con -----BEGIN...)
+- EC2_PORT: 22
+- GHCR_USER: tu usuario de GitHub (dueño del PAT)
+- GHCR_PAT: el token del paso 1
+Nada más. No necesitas crear Environment ni package manual: la imagen en GHCR (ghcr.io/tu-usuario/portal-facturacion-api) se crea sola en el primer push, y GITHUB_TOKEN lo pone Actions automáticamente.
+Verifica además en Repo → Settings → Actions → General → Workflow permissions que esté en Read and write permissions, si no el push a GHCR falla.a

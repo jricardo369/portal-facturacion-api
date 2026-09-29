@@ -1,23 +1,51 @@
 name: build-push-deploy
 
+# ============================================================
+# CREDENCIALES FALTANTES — configurar antes de usar:
+#
+# GitHub > Settings > Secrets and variables > Actions > Secrets:
+#   - EC2_HOST     : IP elástica o DNS del EC2 (ej: 3.85.1.2)
+#   - EC2_USER     : usuario SSH (ubuntu en Ubuntu, ec2-user en Amazon Linux)
+#   - EC2_SSH_KEY  : clave privada SSH (.pem completo)
+#   - EC2_PORT     : puerto SSH (ej: 22)
+#   - GHCR_USER    : tu usuario de GitHub (dueño del PAT)
+#   - GHCR_PAT     : PAT clásico con scope read:packages (para `docker pull` en el EC2)
+#
+# EC2 (una sola vez, en /opt/portal-facturacion-api):
+#   - git clone del repo + `docker login ghcr.io`
+#   - archivo ./configuracion-general.yml (copia de configuracion-general.example.yml, chmod 600)
+#   - archivo ./.env.prod con IMAGE_OWNER / TAG / APP_DOMAIN
+# ============================================================
+
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ["v*.*.*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag manual para rollback (ej: 1.0.0 o sha-abc1234). Vacío = latest"
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
+      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,41 +66,68 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag
+      - name: Tag (lowercase + version o sha)
         id: meta
         run: |
+          IMAGE=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+            TAG="${GITHUB_REF#refs/tags/v}"
+          elif [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
           else
-            echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            TAG="sha-${GITHUB_SHA::7}"
           fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$IMAGE" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
 
   deploy:
     needs: build-test-push
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: appleboy/ssh-action@v1
+      - uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
+          port: ${{ secrets.EC2_PORT || 22 }}
           script: |
             set -e
             cd /opt/portal-facturacion-api
-            git fetch origin
-            git checkout ${{ github.sha }} -- docker-compose.prod.yml Caddyfile
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
+            # Trae ramas + tags y deja el código exacto del commit que disparó el workflow
+            git fetch origin --tags --force
+            git checkout --force ${{ github.sha }}
+            # Login GHCR: usa PAT si existe, si no usa el GITHUB_TOKEN
+            if [ -n "${{ secrets.GHCR_PAT }}" ]; then
+              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
+            else
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            fi
             export TAG=${{ needs.build-test-push.outputs.tag }}
             export IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            # APP_DOMAIN sale de .env.prod en el servidor (Caddy). No exportarlo aquí.
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
+            # Verificación: falla el workflow si la app no está UP
+            for i in $(seq 1 12); do
+              if curl -fs http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+                echo "API healthy"
+                break
+              fi
+              echo "esperando api... intento $i/12"
+              sleep 10
+              if [ "$i" = "12" ]; then
+                docker compose -f docker-compose.prod.yml logs --tail=100 api
+                exit 1
+              fi
+            done
+            docker image prune -af || true
