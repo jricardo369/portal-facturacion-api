@@ -1,7 +1,17 @@
 {$APP_DOMAIN} {
-	handle /api/* { reverse_proxy api:8080 }
-	handle /actuator/* { reverse_proxy api:8080 }
-	handle /v3/* { reverse_proxy api:8080 }
-	handle /swagger-ui* { reverse_proxy api:8080 }
-	handle { reverse_proxy web:80 }
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /actuator/* {
+		reverse_proxy api:8080
+	}
+	handle /v3/* {
+		reverse_proxy api:8080
+	}
+	handle /swagger-ui* {
+		reverse_proxy api:8080
+	}
+	handle {
+		reverse_proxy web:80
+	}
 }
