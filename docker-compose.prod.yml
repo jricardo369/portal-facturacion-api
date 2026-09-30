@@ -11,6 +11,10 @@ services:
       # Toda la conexión vive aquí. En el servidor debe existir
       # /opt/portal-facturacion-configs/configuracion-general.yml (chmod 600, no versionado).
       - /opt/portal-facturacion-configs/configuracion-general.yml:/opt/portal-facturacion-configs/configuracion-general.yml:ro
+      # Layouts de correo (editables en el servidor sin rebuild).
+      # En el servidor debe existir /opt/portal-facturacion-configs/html-mails/correo_factura.html
+      # con archivos 644 y directorios 755 para que el usuario 'app' del contenedor pueda leerlos.
+      - /opt/portal-facturacion-configs/html-mails:/opt/portal-facturacion-configs/html-mails:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
