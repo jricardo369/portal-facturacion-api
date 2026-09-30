@@ -1,4 +1,8 @@
-{$APP_DOMAIN} {
+# TEMPORAL: http:// desactiva el TLS automático porque el hostname
+# *.compute.amazonaws.com está prohibido por política de Let's Encrypt.
+# Cuando tengas dominio propio con registro A, quita el prefijo http://
+# y Caddy emitirá el certificado https automáticamente.
+http://{$APP_DOMAIN} {
 	handle /api/* {
 		reverse_proxy api:8080
 	}
