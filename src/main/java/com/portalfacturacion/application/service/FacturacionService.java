@@ -101,6 +101,7 @@ public class FacturacionService {
   }
 
   private void validarTotalContraTicket(Ticket ticket, BigDecimal total) {
+    
     if (total == null) {
       return;
     }
