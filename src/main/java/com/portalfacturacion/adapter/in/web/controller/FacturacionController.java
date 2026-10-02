@@ -13,8 +13,10 @@ import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -39,11 +41,15 @@ public class FacturacionController {
   }
 
   @GetMapping("/datos-factura")
-  @Operation(summary = "Obtener datos de factura por query params rfc y numeroTicket")
+  @Operation(summary = "Obtener datos de factura por query params rfc, numeroTicket, fecha y total")
   public ResponseEntity<DatosFacturaResponse> obtenerPorParams(
       @RequestParam(required = false) String rfc,
-      @RequestParam String numeroTicket) {
-    return ResponseEntity.ok(toResponse(service.obtenerDatosFactura(rfc, numeroTicket)));
+      @RequestParam String numeroTicket,
+      @Parameter(description = "Fecha del ticket (yyyy-MM-dd). Se valida contra la fecha del ticket en FuDo")
+      @RequestParam(required = false) String fecha,
+      @Parameter(description = "Total del ticket. Se valida contra el total del ticket en FuDo")
+      @RequestParam(required = false) BigDecimal total) {
+    return ResponseEntity.ok(toResponse(service.obtenerDatosFactura(rfc, numeroTicket, fecha, total)));
   }
 
   @PostMapping("/facturar")

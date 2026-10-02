@@ -3,6 +3,7 @@ package com.portalfacturacion.application.service;
 import com.portalfacturacion.domain.exception.ClienteNoEncontradoException;
 import com.portalfacturacion.domain.exception.FacturaDuplicadaException;
 import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
+import com.portalfacturacion.domain.exception.TicketNoEncontradoException;
 import com.portalfacturacion.domain.model.Cliente;
 import com.portalfacturacion.domain.model.DatosFactura;
 import com.portalfacturacion.domain.model.Factura;
@@ -10,6 +11,9 @@ import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -38,6 +42,11 @@ public class FacturacionService {
   }
 
   public DatosFactura obtenerDatosFactura(String rfc, String numeroTicket) {
+    return obtenerDatosFactura(rfc, numeroTicket, null, null);
+  }
+
+  public DatosFactura obtenerDatosFactura(String rfc, String numeroTicket,
+                                          String fecha, BigDecimal total) {
     if (numeroTicket == null || numeroTicket.isBlank()) {
       throw new IllegalArgumentException("El numero de ticket es obligatorio");
     }
@@ -46,6 +55,8 @@ public class FacturacionService {
       throw new FacturaDuplicadaException("El ticket " + noTicket + " ya ha sido facturado");
     }
     Ticket ticket = ticketService.obtenerTicket(noTicket);
+    validarFechaContraTicket(ticket, fecha);
+    validarTotalContraTicket(ticket, total);
     Cliente cliente = null;
     if (rfc != null && !rfc.isBlank()) {
       try {
@@ -56,6 +67,53 @@ public class FacturacionService {
     }
     aplicarImpuestosSegunRfc(ticket, rfc);
     return new DatosFactura(ticket, cliente);
+  }
+
+  private void validarFechaContraTicket(Ticket ticket, String fecha) {
+    if (fecha == null || fecha.isBlank()) {
+      return;
+    }
+    LocalDate esperada = parsearFecha(fecha.trim());
+    Instant referencia = ticket.getFechaCierre() != null
+        ? ticket.getFechaCierre() : ticket.getFechaEmision();
+    if (referencia == null) {
+      return;
+    }
+    ZoneId zona = ZoneId.of("America/Mexico_City");
+    LocalDate fechaTicket = referencia.atZone(zona).toLocalDate();
+    if (!fechaTicket.equals(esperada)
+        && !referencia.atZone(ZoneId.of("UTC")).toLocalDate().equals(esperada)) {
+      throw new TicketNoEncontradoException(
+          "No se encontró el ticket con la fecha capturada");
+    }
+  }
+
+  private LocalDate parsearFecha(String fecha) {
+    try {
+      return LocalDate.parse(fecha);
+    } catch (DateTimeParseException ex) {
+      try {
+        return Instant.parse(fecha).atZone(ZoneId.of("America/Mexico_City")).toLocalDate();
+      } catch (DateTimeParseException ex2) {
+        throw new IllegalArgumentException("La fecha debe tener formato yyyy-MM-dd");
+      }
+    }
+  }
+
+  private void validarTotalContraTicket(Ticket ticket, BigDecimal total) {
+    if (total == null) {
+      return;
+    }
+    BigDecimal totalTicket = ticket.getTotal();
+    if (totalTicket == null) {
+      throw new TicketNoEncontradoException(
+          "No se encontró el ticket con el total capturado");
+    }
+    BigDecimal diferencia = totalTicket.subtract(total).abs();
+    if (diferencia.compareTo(new BigDecimal("0.01")) > 0) {
+      throw new TicketNoEncontradoException(
+          "No se encontró el ticket con el total capturado");
+    }
   }
 
   private void aplicarImpuestosSegunRfc(Ticket ticket, String rfc) {
@@ -124,7 +182,12 @@ public class FacturacionService {
         || datos.getCliente().getRfc().isBlank()) {
       throw new IllegalArgumentException("Los datos del cliente y RFC son obligatorios para facturar");
     }
+    if (datos.getCliente().getRegimenFiscal() == null
+        || datos.getCliente().getRegimenFiscal().isBlank()) {
+      throw new IllegalArgumentException("El régimen fiscal es obligatorio para facturar");
+    }
     Cliente cliente = datos.getCliente();
+    cliente.setRegimenFiscal(cliente.getRegimenFiscal().trim());
     Cliente guardado;
     if (clienteService.existePorRfc(cliente.getRfc().trim())) {
       guardado = clienteService.actualizarPorRfc(cliente.getRfc().trim(), cliente);
