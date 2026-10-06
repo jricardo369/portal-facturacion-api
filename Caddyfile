@@ -1,8 +1,8 @@
-# TEMPORAL: http:// desactiva el TLS automático porque el hostname
-# *.compute.amazonaws.com está prohibido por política de Let's Encrypt.
-# Cuando tengas dominio propio con registro A, quita el prefijo http://
-# y Caddy emitirá el certificado https automáticamente.
-http://{$APP_DOMAIN} {
+# Responde en cualquier hostname (:80): el hostname público del EC2 cambia
+# si la instancia se reinicia sin IP elástica, y APP_DOMAIN puede no coincidir.
+# Cuando tengas dominio propio con registro A, cambia :80 por {$APP_DOMAIN}
+# (sin prefijo http://) y Caddy emitirá el certificado https automáticamente.
+:80 {
 	handle /api/* {
 		reverse_proxy api:8080
 	}
