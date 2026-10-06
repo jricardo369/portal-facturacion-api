@@ -7,6 +7,14 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: 8080
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+    mem_limit: 700m
+    mem_reservation: 400m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       # Toda la conexión vive aquí. En el servidor debe existir
       # /opt/portal-facturacion-configs/configuracion-general.yml (chmod 600, no versionado).
@@ -31,6 +39,12 @@ services:
     container_name: portal-facturacion-web
     expose:
       - "80"
+    mem_limit: 100m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ > /dev/null || exit 1"]
@@ -53,9 +67,15 @@ services:
       - caddy_config:/config
     depends_on:
       api:
-        condition: service_healthy
+        condition: service_started
       web:
-        condition: service_healthy
+        condition: service_started
+    mem_limit: 100m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
 volumes:

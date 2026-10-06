@@ -101,9 +101,9 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
-          command_timeout: 30m
+          command_timeout: 10m
           script: |
-            set -e
+            set -ex
             cd /opt/portal-facturacion-api
             git config --global --add safe.directory /opt/portal-facturacion-api || true
             # Trae ramas + tags y deja el código exacto del commit que disparó el workflow
@@ -126,19 +126,27 @@ jobs:
             fi
             COMPOSE="docker compose --env-file $ENV_FILE -f docker-compose.prod.yml"
             $COMPOSE pull
-            $COMPOSE up -d --force-recreate
+            timeout 240 $COMPOSE up -d --force-recreate || {
+              echo "===== compose ps ====="
+              $COMPOSE ps || true
+              echo "===== logs api ====="
+              $COMPOSE logs --tail=200 api || docker logs --tail=200 portal-facturacion-api || true
+              echo "===== logs web ====="
+              $COMPOSE logs --tail=200 web || docker logs --tail=200 portal-facturacion-web || true
+              exit 1
+            }
             $COMPOSE ps
             # Verificación: falla el workflow si la app no está UP
             # Nota: el puerto 8080 no está publicado al host (solo expose),
             # por eso se consulta desde dentro del contenedor.
-            for i in $(seq 1 12); do
+            for i in $(seq 1 30); do
               if docker exec portal-facturacion-api wget -qO- http://localhost:8080/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
                 echo "API healthy"
                 break
               fi
-              echo "esperando api... intento $i/12"
+              echo "esperando api... intento $i/30"
               sleep 10
-              if [ "$i" = "12" ]; then
+              if [ "$i" = "30" ]; then
                 echo "===== compose ps ====="
                 $COMPOSE ps
                 echo "===== logs api ====="

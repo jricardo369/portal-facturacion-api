@@ -8,6 +8,8 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 ENV SPRING_PROFILES_ACTIVE=prod
+# Micro EC2 1GB: limita heap para no matar el host (OOM). Ajustable vía -e JAVA_OPTS en compose.
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
 # wget es requerido por el HEALTHCHECK (compose + Dockerfile) y por el loop
 # de verificación del workflow deploy.yml. La imagen temurin-alpine no lo trae garantizado.
 RUN apk add --no-cache wget
@@ -19,4 +21,4 @@ USER app
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
