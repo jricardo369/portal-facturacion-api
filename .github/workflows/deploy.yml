@@ -93,7 +93,7 @@ jobs:
   deploy:
     needs: build-test-push
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: appleboy/ssh-action@v1.2.0
         with:
@@ -101,6 +101,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
+          command_timeout: 30m
           script: |
             set -e
             cd /opt/portal-facturacion-api
@@ -138,8 +139,19 @@ jobs:
               echo "esperando api... intento $i/12"
               sleep 10
               if [ "$i" = "12" ]; then
-                $COMPOSE logs --tail=100 api
+                echo "===== compose ps ====="
+                $COMPOSE ps
+                echo "===== logs api ====="
+                $COMPOSE logs --tail=200 api || docker logs --tail=200 portal-facturacion-api || true
+                echo "===== logs web ====="
+                $COMPOSE logs --tail=200 web || docker logs --tail=200 portal-facturacion-web || true
+                echo "===== logs caddy ====="
+                $COMPOSE logs --tail=100 caddy || docker logs --tail=100 caddy || true
+                echo "===== health api ====="
+                docker inspect portal-facturacion-api --format='{{json .State.Health}}' || true
+                echo "===== health web ====="
+                docker inspect portal-facturacion-web --format='{{json .State.Health}}' || true
                 exit 1
               fi
             done
-            docker image prune -af || true
+            docker image prune -f --filter "dangling=true" || true

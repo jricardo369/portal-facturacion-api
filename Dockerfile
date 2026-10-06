@@ -8,6 +8,9 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 ENV SPRING_PROFILES_ACTIVE=prod
+# wget es requerido por el HEALTHCHECK (compose + Dockerfile) y por el loop
+# de verificación del workflow deploy.yml. La imagen temurin-alpine no lo trae garantizado.
+RUN apk add --no-cache wget
 RUN addgroup -S app && adduser -S app -G app
 RUN mkdir -p /opt/portal-facturacion-configs && chown app:app /opt/portal-facturacion-configs
 WORKDIR /app

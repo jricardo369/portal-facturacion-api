@@ -19,11 +19,12 @@ services:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      # Grep a '"status":"UP"': wget sale 0 aunque el JSON sea {"status":"DOWN"}.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 30s
-      timeout: 5s
-      start_period: 60s
-      retries: 3
+      timeout: 10s
+      start_period: 120s
+      retries: 5
 
   web:
     image: ghcr.io/${WEB_IMAGE_OWNER:-tu-organizacion}/portal-facturacion-web:${WEB_TAG:-latest}
@@ -32,11 +33,11 @@ services:
       - "80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ > /dev/null || exit 1"]
       interval: 30s
-      timeout: 5s
-      start_period: 15s
-      retries: 3
+      timeout: 10s
+      start_period: 30s
+      retries: 5
 
   caddy:
     image: caddy:2-alpine
