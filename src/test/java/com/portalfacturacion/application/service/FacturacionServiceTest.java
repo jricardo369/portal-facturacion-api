@@ -169,6 +169,31 @@ class FacturacionServiceTest {
   }
 
   @Test
+  void facturar_rfcInvalido_lanzaErrorAntesDeTimbrar() {
+    Cliente c = cliente();
+    c.setRfc("RFC-INVALIDO");
+    DatosFactura datos = new DatosFactura(ticket(), c);
+
+    assertThatThrownBy(() -> service.facturar(datos))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("formato valido del SAT");
+    verify(facturapi, never()).timbrar(any());
+    verify(facturaService, never()).crear(any(Factura.class));
+  }
+
+  @Test
+  void facturar_rfcVacio_lanzaErrorAntesDeTimbrar() {
+    Cliente c = cliente();
+    c.setRfc("   ");
+    DatosFactura datos = new DatosFactura(ticket(), c);
+
+    assertThatThrownBy(() -> service.facturar(datos))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("obligatorio");
+    verify(facturapi, never()).timbrar(any());
+  }
+
+  @Test
   void refacturar_cancelaPreviaConMotivo01YSustitucion() {
     Cliente c = cliente();
     when(clienteService.obtenerPorRfc("AAAA111111AAA")).thenReturn(c);

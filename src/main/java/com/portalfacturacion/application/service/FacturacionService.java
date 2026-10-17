@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class FacturacionService {
 
   private static final Logger log = LoggerFactory.getLogger(FacturacionService.class);
+
+  private static final Pattern RFC_PATTERN = Pattern.compile("^[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}$");
 
   private final TicketService ticketService;
   private final ClienteService clienteService;
@@ -183,20 +186,19 @@ public class FacturacionService {
 
   @Transactional
   public DatosFactura facturar(DatosFactura datos) {
-    if (datos == null || datos.getCliente() == null
-        || datos.getCliente().getRfc() == null
-        || datos.getCliente().getRfc().isBlank()) {
-      throw new IllegalArgumentException("Los datos del cliente y RFC son obligatorios para facturar");
-    }
-    if (datos.getCliente().getRegimenFiscal() == null
-        || datos.getCliente().getRegimenFiscal().isBlank()) {
-      throw new IllegalArgumentException("El régimen fiscal es obligatorio para facturar");
+    if (datos == null || datos.getCliente() == null) {
+      throw new IllegalArgumentException("Los datos del cliente son obligatorios para facturar");
     }
     Cliente cliente = datos.getCliente();
+    cliente.setRfc(validarRfc(cliente.getRfc(), "facturar"));
+    if (cliente.getRegimenFiscal() == null
+        || cliente.getRegimenFiscal().isBlank()) {
+      throw new IllegalArgumentException("El régimen fiscal es obligatorio para facturar");
+    }
     cliente.setRegimenFiscal(cliente.getRegimenFiscal().trim());
     Cliente guardado;
-    if (clienteService.existePorRfc(cliente.getRfc().trim())) {
-      guardado = clienteService.actualizarPorRfc(cliente.getRfc().trim(), cliente);
+    if (clienteService.existePorRfc(cliente.getRfc())) {
+      guardado = clienteService.actualizarPorRfc(cliente.getRfc(), cliente);
     } else {
       guardado = clienteService.crear(cliente);
     }
@@ -214,11 +216,10 @@ public class FacturacionService {
 
   @Transactional
   public DatosFactura refacturar(DatosFactura datos) {
-    if (datos == null || datos.getCliente() == null
-        || datos.getCliente().getRfc() == null
-        || datos.getCliente().getRfc().isBlank()) {
-      throw new IllegalArgumentException("Los datos del cliente y RFC son obligatorios para refacturar");
+    if (datos == null || datos.getCliente() == null) {
+      throw new IllegalArgumentException("Los datos del cliente son obligatorios para refacturar");
     }
+    datos.getCliente().setRfc(validarRfc(datos.getCliente().getRfc(), "refacturar"));
     Cliente guardado = guardarClienteSiCambio(datos.getCliente());
     Factura factura = timbrarYRefacturar(datos.getTicket(), guardado);
     aplicarMontosTimbrados(datos.getTicket(), factura);
@@ -356,6 +357,20 @@ public class FacturacionService {
       throw new IllegalArgumentException("El numero de ticket es obligatorio para " + operacion);
     }
     return ticket.getNumeroTicket().trim();
+  }
+
+  private String validarRfc(String rfc, String operacion) {
+    if (rfc == null || rfc.isBlank()) {
+      throw new IllegalArgumentException("El RFC del cliente es obligatorio para " + operacion);
+    }
+    String normalizado = rfc.trim().toUpperCase(Locale.ROOT);
+    if (!RFC_PATTERN.matcher(normalizado).matches()) {
+      throw new IllegalArgumentException(
+          "El RFC '" + normalizado + "' no tiene un formato valido del SAT (12 caracteres para "
+              + "persona moral o 13 para persona fisica). Ejemplos: ABC010101AB1 (moral), "
+              + "ABCD010101AB1 (fisica), XAXX010101000 (publico en general)");
+    }
+    return normalizado;
   }
 
   private FacturaTimbrada timbrar(Ticket ticket, Cliente cliente) {
