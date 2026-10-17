@@ -16,6 +16,10 @@ public class SolicitudTimbrado {
   private boolean precioConImpuestos;
   private String folioExterno;
   private List<ItemSolicitudTimbrado> items;
+  private boolean publicoGeneral;
+  private String periodoPeriodicity;
+  private String periodoMeses;
+  private Integer periodoAnio;
 
   public SolicitudTimbrado() {
   }
@@ -42,4 +46,12 @@ public class SolicitudTimbrado {
   public void setFolioExterno(String folioExterno) { this.folioExterno = folioExterno; }
   public List<ItemSolicitudTimbrado> getItems() { return items; }
   public void setItems(List<ItemSolicitudTimbrado> items) { this.items = items; }
+  public boolean isPublicoGeneral() { return publicoGeneral; }
+  public void setPublicoGeneral(boolean publicoGeneral) { this.publicoGeneral = publicoGeneral; }
+  public String getPeriodoPeriodicity() { return periodoPeriodicity; }
+  public void setPeriodoPeriodicity(String periodoPeriodicity) { this.periodoPeriodicity = periodoPeriodicity; }
+  public String getPeriodoMeses() { return periodoMeses; }
+  public void setPeriodoMeses(String periodoMeses) { this.periodoMeses = periodoMeses; }
+  public Integer getPeriodoAnio() { return periodoAnio; }
+  public void setPeriodoAnio(Integer periodoAnio) { this.periodoAnio = periodoAnio; }
 }

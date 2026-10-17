@@ -393,6 +393,7 @@ public class FacturacionService {
     solicitud.setMetodoPago(propiedades.getPaymentMethod());
     solicitud.setPrecioConImpuestos(propiedades.isTaxIncluded());
     solicitud.setFolioExterno(ticket.getNumeroTicket());
+    aplicarReglasPublicoGeneral(solicitud, ticket);
     List<ItemSolicitudTimbrado> items = new ArrayList<>();
     if (ticket.getItems() != null) {
       for (var item : ticket.getItems()) {
@@ -409,6 +410,37 @@ public class FacturacionService {
     }
     solicitud.setItems(items);
     return solicitud;
+  }
+
+  private static final String RFC_PUBLICO_GENERAL = "XAXX010101000";
+
+  private void aplicarReglasPublicoGeneral(SolicitudTimbrado solicitud, Ticket ticket) {
+    if (!RFC_PUBLICO_GENERAL.equalsIgnoreCase(solicitud.getRfc())) {
+      return;
+    }
+    solicitud.setPublicoGeneral(true);
+    solicitud.setRazonSocial("PUBLICO EN GENERAL");
+    solicitud.setRegimenFiscal("616");
+    solicitud.setUsoCfdi("S01");
+    String periodicidad = propiedades.getPublicoGeneralPeriodicity();
+    solicitud.setPeriodoPeriodicity(periodicidad);
+    LocalDate fecha = fechaOperacion(ticket);
+    solicitud.setPeriodoMeses(resolverMesGlobal(fecha, periodicidad));
+    solicitud.setPeriodoAnio(fecha.getYear());
+  }
+
+  private LocalDate fechaOperacion(Ticket ticket) {
+    Instant referencia = ticket.getFechaCierre() != null ? ticket.getFechaCierre()
+        : ticket.getFechaEmision() != null ? ticket.getFechaEmision() : Instant.now();
+    return referencia.atZone(ZoneId.of("America/Mexico_City")).toLocalDate();
+  }
+
+  private String resolverMesGlobal(LocalDate fecha, String periodicidad) {
+    if ("two_months".equalsIgnoreCase(periodicidad)) {
+      int bimester = (fecha.getMonthValue() + 1) / 2 + 12;
+      return String.format("%02d", bimester);
+    }
+    return String.format("%02d", fecha.getMonthValue());
   }
 
   private String resolverFormaPago(List<TicketPago> pagos) {

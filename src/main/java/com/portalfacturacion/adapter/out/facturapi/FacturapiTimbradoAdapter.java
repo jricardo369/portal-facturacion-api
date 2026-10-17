@@ -91,7 +91,7 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
             + "Verifique en el dashboard de Facturapi con el id " + id + " antes de reintentar");
   }
 
-  private Map<String, Object> construirCuerpo(SolicitudTimbrado s) {
+  Map<String, Object> construirCuerpo(SolicitudTimbrado s) {
     Map<String, Object> cliente = new HashMap<>();
     cliente.put("legal_name", s.getRazonSocial());
     cliente.put("tax_id", s.getRfc());
@@ -126,6 +126,13 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
     }
     cuerpo.put("payment_form", s.getFormaPago());
     cuerpo.put("payment_method", s.getMetodoPago());
+    if (s.isPublicoGeneral()) {
+      Map<String, Object> global = new HashMap<>();
+      global.put("periodicity", s.getPeriodoPeriodicity());
+      global.put("months", s.getPeriodoMeses());
+      global.put("year", s.getPeriodoAnio());
+      cuerpo.put("global", global);
+    }
     return cuerpo;
   }
 

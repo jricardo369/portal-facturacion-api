@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portalfacturacion.configuration.FacturapiProperties;
 import com.portalfacturacion.domain.exception.TimbradoFallidoException;
 import com.portalfacturacion.domain.model.FacturaTimbrada;
+import com.portalfacturacion.domain.model.SolicitudTimbrado;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
@@ -121,5 +124,48 @@ class FacturapiTimbradoAdapterTest {
   void mapearFactura_respuestaSinId_lanzaExcepcion() {
     assertThatThrownBy(() -> crearAdapter().mapearFactura(new ObjectMapper().createObjectNode()))
         .isInstanceOf(TimbradoFallidoException.class);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void construirCuerpo_publicoGeneral_incluyeNodoGlobal() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("XAXX010101000");
+    s.setRazonSocial("PUBLICO EN GENERAL");
+    s.setRegimenFiscal("616");
+    s.setUsoCfdi("S01");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    s.setPublicoGeneral(true);
+    s.setPeriodoPeriodicity("day");
+    s.setPeriodoMeses("10");
+    s.setPeriodoAnio(2026);
+    s.setItems(List.of());
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    assertThat(cuerpo).containsKey("global");
+    Map<String, Object> global = (Map<String, Object>) cuerpo.get("global");
+    assertThat(global)
+        .containsEntry("periodicity", "day")
+        .containsEntry("months", "10")
+        .containsEntry("year", 2026);
+    assertThat(cuerpo.get("use")).isEqualTo("S01");
+  }
+
+  @Test
+  void construirCuerpo_noPublicoGeneral_sinNodoGlobal() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("AAAA111111AAA");
+    s.setRazonSocial("Empresa X");
+    s.setRegimenFiscal("601");
+    s.setUsoCfdi("G03");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    s.setItems(List.of());
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    assertThat(cuerpo).doesNotContainKey("global");
   }
 }

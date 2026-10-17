@@ -194,6 +194,54 @@ class FacturacionServiceTest {
   }
 
   @Test
+  void facturar_publicoGeneral_fuerzaRegimenUsoYPeriodoGlobal() {
+    Cliente c = cliente();
+    c.setRfc("XAXX010101000");
+    c.setRazonSocial("Juan Perez");
+    c.setRegimenFiscal("601");
+    c.setUsoFactura("G03");
+    stubGuardarCliente(c);
+    when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
+    when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
+    stubCrearFactura();
+    when(facturapi.obtenerZip("fp1")).thenReturn("zip".getBytes());
+    DatosFactura datos = new DatosFactura(ticket(), c);
+
+    service.facturar(datos);
+
+    ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
+    verify(facturapi).timbrar(solicitud.capture());
+    SolicitudTimbrado s = solicitud.getValue();
+    assertThat(s.isPublicoGeneral()).isTrue();
+    assertThat(s.getRazonSocial()).isEqualTo("PUBLICO EN GENERAL");
+    assertThat(s.getRegimenFiscal()).isEqualTo("616");
+    assertThat(s.getUsoCfdi()).isEqualTo("S01");
+    assertThat(s.getPeriodoPeriodicity()).isEqualTo("day");
+    java.time.LocalDate hoy = java.time.LocalDate.now(java.time.ZoneId.of("America/Mexico_City"));
+    assertThat(s.getPeriodoMeses()).isEqualTo(String.format("%02d", hoy.getMonthValue()));
+    assertThat(s.getPeriodoAnio()).isEqualTo(hoy.getYear());
+  }
+
+  @Test
+  void facturar_rfcNormal_noActivaPublicoGeneral() {
+    Cliente c = cliente();
+    stubGuardarCliente(c);
+    when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
+    when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
+    stubCrearFactura();
+    when(facturapi.obtenerZip("fp1")).thenReturn("zip".getBytes());
+    DatosFactura datos = new DatosFactura(ticket(), c);
+
+    service.facturar(datos);
+
+    ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
+    verify(facturapi).timbrar(solicitud.capture());
+    assertThat(solicitud.getValue().isPublicoGeneral()).isFalse();
+    assertThat(solicitud.getValue().getRegimenFiscal()).isEqualTo("601");
+    assertThat(solicitud.getValue().getUsoCfdi()).isEqualTo("G03");
+  }
+
+  @Test
   void refacturar_cancelaPreviaConMotivo01YSustitucion() {
     Cliente c = cliente();
     when(clienteService.obtenerPorRfc("AAAA111111AAA")).thenReturn(c);

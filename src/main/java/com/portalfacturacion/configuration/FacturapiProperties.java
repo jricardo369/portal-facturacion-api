@@ -15,6 +15,7 @@ public class FacturapiProperties {
   private String paymentMethod = "PUE";
   private String productKey = "01010101";
   private String motivoCancelacion = "02";
+  private String publicoGeneralPeriodicity = "day";
 
   public String getBaseUrl() { return baseUrl; }
   public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
@@ -32,6 +33,10 @@ public class FacturapiProperties {
   public void setProductKey(String productKey) { this.productKey = productKey; }
   public String getMotivoCancelacion() { return motivoCancelacion; }
   public void setMotivoCancelacion(String motivoCancelacion) { this.motivoCancelacion = motivoCancelacion; }
+  public String getPublicoGeneralPeriodicity() { return publicoGeneralPeriodicity; }
+  public void setPublicoGeneralPeriodicity(String publicoGeneralPeriodicity) {
+    this.publicoGeneralPeriodicity = publicoGeneralPeriodicity;
+  }
 
   public boolean isConfigured() {
     return apiKey != null && !apiKey.isBlank();

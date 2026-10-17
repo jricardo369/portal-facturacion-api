@@ -68,6 +68,7 @@ app:
     payment-method: "PUE"
     product-key: "01010101"     # clave prod/serv SAT para items del ticket
     motivo-cancelacion: "02"
+    publico-general-periodicity: "day"  # periodicidad factura global: day|week|fortnight|month|two_months
   correo:
     host: smtp.gmail.com
     port: 587
@@ -230,7 +231,7 @@ VALUES ('admin','<HASH_BCRYPT>','Administrador','ADMIN',TRUE,NOW(),NOW());
 - `adapter.out.mail` es NoOp; `adapter.out.file` es stub pendiente.
 - Tests: unitarios (servicios, JWT), `@WebMvcTest` (controladores, authz), integración H2 (flujo completo), Testcontainers MySQL condicional (se omite sin Docker), ArchUnit (domain/application no dependen de adapters/frameworks).
 - Tickets/FuDo: el folio del portal se mapea al `id` de venta (`sale`) de FuDo (`GET /sales/{id}?include=items.product,payments.paymentMethod,customer,table`, base `https://api.fu.do/v1alpha1`, ref `https://dev.fu.do/api`). Solo ventas `CLOSED` se marcan `facturable=true`; `transaccion/rfc/codigoPostal` son opcionales de trazabilidad (la validación estricta contra el ticket impreso queda pendiente de confirmar el campo FuDo). `GET /api/v1/tickets/**` es público para el portal de bienvenida (sin login).
-- Facturación electrónica (Facturapi): `POST /facturacion/facturar` timbra el CFDI 4.0 contra Facturapi (`app.facturapi.*` en `configuracion-general.yml`) y guarda `uuid`, serie/folio y `facturapi_id` del comprobante; el correo se envía con el ZIP (XML+PDF) adjunto. `POST /facturacion/factura/cancelar` cancela ante el SAT (motivos `02`/`03`; el `01` con sustitución se gestiona desde `/refacturar`). Descarga: `GET /facturacion/factura/xml|pdf|zip?uuid=...`. Los importes locales se toman del desglose de Facturapi (IVA 16% por defecto con `tax-included: true`). En refacturar se timbra primero la nueva factura y luego se cancela la previa con motivo `01` + sustitución.
+- Facturación electrónica (Facturapi): `POST /facturacion/facturar` timbra el CFDI 4.0 contra Facturapi (`app.facturapi.*` en `configuracion-general.yml`) y guarda `uuid`, serie/folio y `facturapi_id` del comprobante; el correo se envía con el ZIP (XML+PDF) adjunto. `POST /facturacion/factura/cancelar` cancela ante el SAT (motivos `02`/`03`; el `01` con sustitución se gestiona desde `/refacturar`). Descarga: `GET /facturacion/factura/xml|pdf|zip?uuid=...`. Los importes locales se toman del desglose de Facturapi (IVA 16% por defecto con `tax-included: true`). En refacturar se timbra primero la nueva factura y luego se cancela la previa con motivo `01` + sustitución. El RFC se valida (regex) antes de timbrar. Si el RFC es `XAXX010101000` (público en general) se fuerzan `PUBLICO EN GENERAL` + régimen `616` + uso `S01` y se envía el nodo `global` (periodicidad configurable en `app.facturapi.publico-general-periodicity`: `day|week|fortnight|month|two_months`).
 
 ## Docker: iniciar y detener
 

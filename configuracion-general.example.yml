@@ -41,6 +41,7 @@ app:
     payment-method: "PUE"
     product-key: "01010101"
     motivo-cancelacion: "02"
+    publico-general-periodicity: "day"
   correo:
     host: smtp.gmail.com
     port: 587
