@@ -54,6 +54,9 @@ logs/
 configuracion-general.yml
 !configuracion-general.example.yml
 
+# ===== Guía local (no versionada) =====
+PARA_PROBAR_LOCAL.md
+
 # ===== Bases de datos locales =====
 *.db
 *.sqlite

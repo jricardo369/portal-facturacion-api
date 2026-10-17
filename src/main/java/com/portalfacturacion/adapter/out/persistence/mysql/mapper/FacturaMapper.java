@@ -15,7 +15,8 @@ public final class FacturaMapper {
     return new Factura(e.getIdFactura(), e.getFolio(), e.getSerie(), e.getFecha(),
         e.getCliente(), e.getRfc(), e.getRazonSocial(), e.getNoTicket(),
         e.getSubtotal(), e.getImpuesto(), e.getTotal(),
-        e.getEstatus(), e.getUuid(), e.getCreatedAt(), e.getUpdatedAt());
+        e.getEstatus(), e.getUuid(), e.getFacturapiId(), e.getCancellationStatus(),
+        e.getCreatedAt(), e.getUpdatedAt());
   }
 
   public static FacturaEntity toEntity(Factura d) {
@@ -33,6 +34,8 @@ public final class FacturaMapper {
     e.setTotal(d.getTotal());
     e.setEstatus(d.getEstatus());
     e.setUuid(d.getUuid());
+    e.setFacturapiId(d.getFacturapiId());
+    e.setCancellationStatus(d.getCancellationStatus());
     e.setCreatedAt(d.getCreatedAt());
     e.setUpdatedAt(d.getUpdatedAt());
     return e;

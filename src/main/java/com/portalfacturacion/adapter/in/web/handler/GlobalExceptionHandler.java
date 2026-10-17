@@ -5,8 +5,10 @@ import com.portalfacturacion.domain.exception.ClienteNoEncontradoException;
 import com.portalfacturacion.domain.exception.CredencialesInvalidasException;
 import com.portalfacturacion.domain.exception.FacturaDuplicadaException;
 import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
+import com.portalfacturacion.domain.exception.FacturapiNoDisponibleException;
 import com.portalfacturacion.domain.exception.FudoNoDisponibleException;
 import com.portalfacturacion.domain.exception.TicketNoEncontradoException;
+import com.portalfacturacion.domain.exception.TimbradoFallidoException;
 import com.portalfacturacion.domain.exception.UsuarioDuplicadoException;
 import com.portalfacturacion.domain.exception.UsuarioInactivoException;
 import com.portalfacturacion.domain.exception.UsuarioNoEncontradoException;
@@ -88,6 +90,16 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(FudoNoDisponibleException.class)
   public ProblemDetail fudoUnavailable(FudoNoDisponibleException ex, HttpServletRequest req) {
     return build(HttpStatus.BAD_GATEWAY, "Upstream unavailable", ex.getMessage(), "fudo-unavailable", req);
+  }
+
+  @ExceptionHandler(FacturapiNoDisponibleException.class)
+  public ProblemDetail facturapiUnavailable(FacturapiNoDisponibleException ex, HttpServletRequest req) {
+    return build(HttpStatus.BAD_GATEWAY, "Upstream unavailable", ex.getMessage(), "facturapi-unavailable", req);
+  }
+
+  @ExceptionHandler(TimbradoFallidoException.class)
+  public ProblemDetail timbradoFallido(TimbradoFallidoException ex, HttpServletRequest req) {
+    return build(HttpStatus.BAD_REQUEST, "Stamping failed", ex.getMessage(), "timbrado-fallido", req);
   }
 
   @ExceptionHandler(AccessDeniedException.class)

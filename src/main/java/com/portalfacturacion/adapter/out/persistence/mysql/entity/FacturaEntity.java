@@ -54,6 +54,12 @@ public class FacturaEntity {
   @Column(name = "uuid", length = 36, unique = true)
   private String uuid;
 
+  @Column(name = "facturapi_id", length = 36, unique = true)
+  private String facturapiId;
+
+  @Column(name = "cancellation_status", length = 20)
+  private String cancellationStatus;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -86,6 +92,10 @@ public class FacturaEntity {
   public void setEstatus(String estatus) { this.estatus = estatus; }
   public String getUuid() { return uuid; }
   public void setUuid(String uuid) { this.uuid = uuid; }
+  public String getFacturapiId() { return facturapiId; }
+  public void setFacturapiId(String facturapiId) { this.facturapiId = facturapiId; }
+  public String getCancellationStatus() { return cancellationStatus; }
+  public void setCancellationStatus(String cancellationStatus) { this.cancellationStatus = cancellationStatus; }
   public Instant getCreatedAt() { return createdAt; }
   public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }

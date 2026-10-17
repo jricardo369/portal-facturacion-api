@@ -17,6 +17,8 @@ public class Factura {
   private BigDecimal total;
   private String estatus;
   private String uuid;
+  private String facturapiId;
+  private String cancellationStatus;
   private Instant createdAt;
   private Instant updatedAt;
 
@@ -26,7 +28,8 @@ public class Factura {
   public Factura(Long idFactura, String folio, String serie, Instant fecha,
                  String cliente, String rfc, String razonSocial, String noTicket,
                  BigDecimal subtotal, BigDecimal impuesto, BigDecimal total,
-                 String estatus, String uuid, Instant createdAt, Instant updatedAt) {
+                 String estatus, String uuid, String facturapiId, String cancellationStatus,
+                 Instant createdAt, Instant updatedAt) {
     this.idFactura = idFactura;
     this.folio = folio;
     this.serie = serie;
@@ -40,6 +43,8 @@ public class Factura {
     this.total = total;
     this.estatus = estatus;
     this.uuid = uuid;
+    this.facturapiId = facturapiId;
+    this.cancellationStatus = cancellationStatus;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -70,6 +75,10 @@ public class Factura {
   public void setEstatus(String estatus) { this.estatus = estatus; }
   public String getUuid() { return uuid; }
   public void setUuid(String uuid) { this.uuid = uuid; }
+  public String getFacturapiId() { return facturapiId; }
+  public void setFacturapiId(String facturapiId) { this.facturapiId = facturapiId; }
+  public String getCancellationStatus() { return cancellationStatus; }
+  public void setCancellationStatus(String cancellationStatus) { this.cancellationStatus = cancellationStatus; }
   public Instant getCreatedAt() { return createdAt; }
   public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }

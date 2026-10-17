@@ -59,6 +59,15 @@ app:
     api-secret: TU_API_SECRET
     timeout-ms: 8000
     sale-include: items.product,payments.paymentMethod,customer,table
+  facturapi:
+    base-url: https://www.facturapi.io/v2
+    api-key: sk_test_TU_LLAVE
+    timeout-ms: 15000
+    tax-included: true          # true si los precios de FuDo incluyen IVA (Facturapi desglosa 16%)
+    payment-form: "01"          # forma de pago SAT default (01 efectivo)
+    payment-method: "PUE"
+    product-key: "01010101"     # clave prod/serv SAT para items del ticket
+    motivo-cancelacion: "02"
   correo:
     host: smtp.gmail.com
     port: 587
@@ -77,11 +86,15 @@ app:
 ```bash
 export DB_HOST=localhost DB_NAME=facturacion DB_USERNAME=facturacion DB_PASSWORD=facturacion
 export JWT_SECRET='clave-local-de-al-menos-32-caracteres-123456'
-# Asegurate de que exista el archivo configuracion-general.yml en la ruta configurada en application-local.yml
+# Asegurate de que exista configuracion-general.yml (ruta absoluta del Mac O ./configuracion-general.yml en la raíz)
 ./mvnw spring-boot:run
 ```
 
-El perfil `local` importa `configuracion-general.yml` desde `/Users/joser.vazquez/config-apps/portal-facturacion/configuracion-general.yml`.
+El perfil `local` importa `configuracion-general.yml` desde dos ubicaciones opcionales: la ruta del Mac
+`/Users/joser.vazquez/config-apps/portal-facturacion-configs/configuracion-general.yml` y, si no existe,
+`./configuracion-general.yml` en la raíz del proyecto (útil para Windows/Linux). Copia
+`configuracion-general.example.yml` → `configuracion-general.yml` en la raíz (gitignored) y rellena los
+valores reales. El servidor por defecto es `http://localhost:18080`.
 
 ## 6. Ejecución con Docker
 
@@ -217,6 +230,7 @@ VALUES ('admin','<HASH_BCRYPT>','Administrador','ADMIN',TRUE,NOW(),NOW());
 - `adapter.out.mail` es NoOp; `adapter.out.file` es stub pendiente.
 - Tests: unitarios (servicios, JWT), `@WebMvcTest` (controladores, authz), integración H2 (flujo completo), Testcontainers MySQL condicional (se omite sin Docker), ArchUnit (domain/application no dependen de adapters/frameworks).
 - Tickets/FuDo: el folio del portal se mapea al `id` de venta (`sale`) de FuDo (`GET /sales/{id}?include=items.product,payments.paymentMethod,customer,table`, base `https://api.fu.do/v1alpha1`, ref `https://dev.fu.do/api`). Solo ventas `CLOSED` se marcan `facturable=true`; `transaccion/rfc/codigoPostal` son opcionales de trazabilidad (la validación estricta contra el ticket impreso queda pendiente de confirmar el campo FuDo). `GET /api/v1/tickets/**` es público para el portal de bienvenida (sin login).
+- Facturación electrónica (Facturapi): `POST /facturacion/facturar` timbra el CFDI 4.0 contra Facturapi (`app.facturapi.*` en `configuracion-general.yml`) y guarda `uuid`, serie/folio y `facturapi_id` del comprobante; el correo se envía con el ZIP (XML+PDF) adjunto. `POST /facturacion/factura/cancelar` cancela ante el SAT (motivos `02`/`03`; el `01` con sustitución se gestiona desde `/refacturar`). Descarga: `GET /facturacion/factura/xml|pdf|zip?uuid=...`. Los importes locales se toman del desglose de Facturapi (IVA 16% por defecto con `tax-included: true`). En refacturar se timbra primero la nueva factura y luego se cancela la previa con motivo `01` + sustitución.
 
 ## Docker: iniciar y detener
 

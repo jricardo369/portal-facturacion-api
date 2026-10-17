@@ -3,7 +3,11 @@ spring:
     # Toda la conexión vive en el archivo externo (misma estructura que el ejemplo
     # configuracion-general.example.yml). Opcional para no romper el arranque sin él,
     # pero sin datasource/url la app falla con mensaje claro.
-    import: optional:file:/Users/joser.vazquez/config-apps/portal-facturacion-configs/configuracion-general.yml
+    # Se admiten dos ubicaciones: la ruta absoluta del Mac y un archivo relativo a la
+    # raíz del proyecto (útil para probar en Windows/Linux sin depender del Mac).
+    import:
+      - optional:file:/Users/joser.vazquez/config-apps/portal-facturacion-configs/configuracion-general.yml
+      - optional:file:./configuracion-general.yml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:

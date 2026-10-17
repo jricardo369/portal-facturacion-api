@@ -18,6 +18,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,6 +81,44 @@ public class FacturacionController {
   public ResponseEntity<DatosFacturaResponse> buscarFacturaPorFiltro(
       @RequestParam String filtro) {
     return ResponseEntity.ok(toResponse(service.buscarFacturaPorFiltro(filtro)));
+  }
+
+  @PostMapping("/factura/cancelar")
+  @Operation(summary = "Cancelar factura timbrada ante el SAT via Facturapi",
+      description = "Motivos SAT: 02 (errores sin relacion), 03 (no se llevo a cabo la operacion). "
+          + "El motivo 01 se gestiona desde refacturar porque requiere la factura sustituta.")
+  public ResponseEntity<FacturaResponse> cancelar(
+      @RequestParam String uuid,
+      @Parameter(description = "Motivo de cancelacion SAT. Default: configuracion app.facturapi")
+      @RequestParam(required = false) String motivo) {
+    return ResponseEntity.ok(toFacturaResponse(service.cancelarFactura(uuid, motivo)));
+  }
+
+  @GetMapping("/factura/xml")
+  @Operation(summary = "Descargar XML del CFDI timbrado por uuid")
+  public ResponseEntity<byte[]> descargarXml(@RequestParam String uuid) {
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_XML)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"cfdi-" + uuid + ".xml\"")
+        .body(service.descargarXml(uuid));
+  }
+
+  @GetMapping("/factura/pdf")
+  @Operation(summary = "Descargar PDF del CFDI timbrado por uuid")
+  public ResponseEntity<byte[]> descargarPdf(@RequestParam String uuid) {
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"cfdi-" + uuid + ".pdf\"")
+        .body(service.descargarPdf(uuid));
+  }
+
+  @GetMapping("/factura/zip")
+  @Operation(summary = "Descargar ZIP con XML y PDF del CFDI timbrado por uuid")
+  public ResponseEntity<byte[]> descargarZip(@RequestParam String uuid) {
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"cfdi-" + uuid + ".zip\"")
+        .body(service.descargarZip(uuid));
   }
 
   private DatosFactura toDomain(DatosFacturaResponse r) {
@@ -146,6 +186,7 @@ public class FacturacionController {
     return new FacturaResponse(f.getIdFactura(), f.getFolio(), f.getSerie(), f.getFecha(),
         f.getCliente(), f.getRfc(), f.getRazonSocial(), f.getNoTicket(),
         f.getSubtotal(), f.getImpuesto(), f.getTotal(),
-        f.getEstatus(), f.getUuid(), f.getCreatedAt(), f.getUpdatedAt());
+        f.getEstatus(), f.getUuid(), f.getFacturapiId(), f.getCancellationStatus(),
+        f.getCreatedAt(), f.getUpdatedAt());
   }
 }

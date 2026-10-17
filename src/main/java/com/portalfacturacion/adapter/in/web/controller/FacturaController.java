@@ -42,7 +42,8 @@ public class FacturaController {
         f.getIdFactura(), f.getFolio(), f.getSerie(), f.getFecha(),
         f.getCliente(), f.getRfc(), f.getRazonSocial(), f.getNoTicket(),
         f.getSubtotal(), f.getImpuesto(), f.getTotal(),
-        f.getEstatus(), f.getUuid(), f.getCreatedAt(), f.getUpdatedAt());
+        f.getEstatus(), f.getUuid(), f.getFacturapiId(), f.getCancellationStatus(),
+        f.getCreatedAt(), f.getUpdatedAt());
     return ResponseEntity.ok(PaginaFacturaResponse.from(pageResult, mapper));
   }
 }

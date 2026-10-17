@@ -32,6 +32,15 @@ app:
     api-secret: TU_API_SECRET
     timeout-ms: 8000
     sale-include: items.product,payments.paymentMethod,customer,table
+  facturapi:
+    base-url: https://www.facturapi.io/v2
+    api-key: sk_test_TU_LLAVE
+    timeout-ms: 15000
+    tax-included: true
+    payment-form: "01"
+    payment-method: "PUE"
+    product-key: "01010101"
+    motivo-cancelacion: "02"
   correo:
     host: smtp.gmail.com
     port: 587
