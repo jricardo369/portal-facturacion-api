@@ -134,6 +134,8 @@ jobs:
               exit 1
             fi
             COMPOSE="docker compose --env-file $ENV_FILE -f docker-compose.prod.yml"
+            # Liberar espacio: borrar imágenes que ya no se usan antes de bajar la nueva
+            docker image prune -af || true
             $COMPOSE pull
             timeout 240 $COMPOSE up -d --force-recreate || {
               echo "===== compose ps ====="
