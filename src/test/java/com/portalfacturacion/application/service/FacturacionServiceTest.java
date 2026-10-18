@@ -257,7 +257,7 @@ class FacturacionServiceTest {
     previa.setFacturapiId("fp1");
     previa.setEstatus("Cargada");
     when(facturaService.obtenerPorNoTicket("T-1")).thenReturn(previa);
-    when(facturapi.cancelar("fp1", "01", "fp2")).thenReturn(cancelacionAceptada());
+    when(facturapi.cancelar("fp1", "01", "uuid-2")).thenReturn(cancelacionAceptada());
     when(facturaService.actualizarPorId(any(), any(Factura.class)))
         .thenAnswer(inv -> inv.getArgument(1));
     stubCrearFactura();
@@ -266,7 +266,7 @@ class FacturacionServiceTest {
 
     service.refacturar(datos);
 
-    verify(facturapi).cancelar(eq("fp1"), eq("01"), eq("fp2"));
+    verify(facturapi).cancelar(eq("fp1"), eq("01"), eq("uuid-2"));
     assertThat(previa.getEstatus()).isEqualTo("CANCELADA");
     assertThat(previa.getCancellationStatus()).isEqualTo("accepted");
     ArgumentCaptor<Factura> creada = ArgumentCaptor.forClass(Factura.class);

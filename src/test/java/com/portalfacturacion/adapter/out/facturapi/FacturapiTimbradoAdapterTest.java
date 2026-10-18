@@ -168,4 +168,43 @@ class FacturapiTimbradoAdapterTest {
 
     assertThat(cuerpo).doesNotContainKey("global");
   }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void construirCuerpo_conUuidSustitucion_incluyeRelacionCfdi04() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("AAAA111111AAA");
+    s.setRazonSocial("Empresa X");
+    s.setRegimenFiscal("601");
+    s.setUsoCfdi("G03");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    s.setUuidSustitucion("uuid-previo");
+    s.setItems(List.of());
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    List<Map<String, Object>> relaciones =
+        (List<Map<String, Object>>) cuerpo.get("related_documents");
+    assertThat(relaciones).hasSize(1);
+    assertThat(relaciones.get(0))
+        .containsEntry("relationship", "04")
+        .containsEntry("documents", List.of("uuid-previo"));
+  }
+
+  @Test
+  void construirCuerpo_sinUuidSustitucion_noIncluyeRelacion() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("AAAA111111AAA");
+    s.setRazonSocial("Empresa X");
+    s.setRegimenFiscal("601");
+    s.setUsoCfdi("G03");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    s.setItems(List.of());
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    assertThat(cuerpo).doesNotContainKey("related_documents");
+  }
 }

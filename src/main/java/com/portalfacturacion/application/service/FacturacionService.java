@@ -347,9 +347,22 @@ public class FacturacionService {
 
   private Factura timbrarYRefacturar(Ticket ticket, Cliente cliente) {
     String noTicket = validarTicketParaFacturar(ticket, "refacturar");
-    FacturaTimbrada timbrada = timbrar(ticket, cliente);
-    cancelarFacturaPrevia(noTicket, timbrada.getId());
+    Factura previa = facturaPreviaTimbrable(noTicket);
+    FacturaTimbrada timbrada = timbrar(ticket, cliente, previa != null ? previa.getUuid() : null);
+    cancelarFacturaPrevia(previa, timbrada.getUuid());
     return crearFactura(ticket, cliente, noTicket, timbrada);
+  }
+
+  private Factura facturaPreviaTimbrable(String noTicket) {
+    try {
+      Factura previa = facturaService.obtenerPorNoTicket(noTicket);
+      if (previa == null || "CANCELADA".equalsIgnoreCase(previa.getEstatus())) {
+        return null;
+      }
+      return previa;
+    } catch (FacturaNoEncontradaException ignored) {
+      return null;
+    }
   }
 
   private String validarTicketParaFacturar(Ticket ticket, String operacion) {
@@ -374,7 +387,13 @@ public class FacturacionService {
   }
 
   private FacturaTimbrada timbrar(Ticket ticket, Cliente cliente) {
-    FacturaTimbrada timbrada = facturapi.timbrar(construirSolicitud(ticket, cliente));
+    return timbrar(ticket, cliente, null);
+  }
+
+  private FacturaTimbrada timbrar(Ticket ticket, Cliente cliente, String uuidSustitucion) {
+    SolicitudTimbrado solicitud = construirSolicitud(ticket, cliente);
+    solicitud.setUuidSustitucion(uuidSustitucion);
+    FacturaTimbrada timbrada = facturapi.timbrar(solicitud);
     if (timbrada == null || timbrada.getUuid() == null || timbrada.getUuid().isBlank()) {
       throw new TimbradoFallidoException("Facturapi no regreso un UUID valido del CFDI");
     }
@@ -467,31 +486,27 @@ public class FacturacionService {
     ticket.setTotal(factura.getTotal());
   }
 
-  private void cancelarFacturaPrevia(String noTicket, String sustitucion) {
+  private void cancelarFacturaPrevia(Factura previa, String uuidSustituto) {
+    if (previa == null) {
+      return;
+    }
+    if (previa.getFacturapiId() == null || previa.getFacturapiId().isBlank()) {
+      facturaService.eliminarPorId(previa.getIdFactura());
+      return;
+    }
     try {
-      Factura previa = facturaService.obtenerPorNoTicket(noTicket);
-      if (previa == null || "CANCELADA".equalsIgnoreCase(previa.getEstatus())) {
-        return;
+      ResultadoCancelacion resultado =
+          facturapi.cancelar(previa.getFacturapiId(), "01", uuidSustituto);
+      previa.setCancellationStatus(resultado.getCancellationStatus());
+      if (resultado.aceptada()) {
+        previa.setEstatus("CANCELADA");
       }
-      if (previa.getFacturapiId() == null || previa.getFacturapiId().isBlank()) {
-        facturaService.eliminarPorId(previa.getIdFactura());
-        return;
-      }
-      try {
-        ResultadoCancelacion resultado =
-            facturapi.cancelar(previa.getFacturapiId(), "01", sustitucion);
-        previa.setCancellationStatus(resultado.getCancellationStatus());
-        if (resultado.aceptada()) {
-          previa.setEstatus("CANCELADA");
-        }
-        facturaService.actualizarPorId(previa.getIdFactura(), previa);
-      } catch (RuntimeException ex) {
-        log.warn("No fue posible cancelar en Facturapi la factura previa uuid={}: {}",
-            previa.getUuid(), ex.getMessage());
-        previa.setCancellationStatus("error");
-        facturaService.actualizarPorId(previa.getIdFactura(), previa);
-      }
-    } catch (FacturaNoEncontradaException ignored) {
+      facturaService.actualizarPorId(previa.getIdFactura(), previa);
+    } catch (RuntimeException ex) {
+      log.warn("No fue posible cancelar en Facturapi la factura previa uuid={}: {}",
+          previa.getUuid(), ex.getMessage());
+      previa.setCancellationStatus("error");
+      facturaService.actualizarPorId(previa.getIdFactura(), previa);
     }
   }
 

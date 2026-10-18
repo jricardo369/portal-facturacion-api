@@ -20,6 +20,7 @@ public class SolicitudTimbrado {
   private String periodoPeriodicity;
   private String periodoMeses;
   private Integer periodoAnio;
+  private String uuidSustitucion;
 
   public SolicitudTimbrado() {
   }
@@ -54,4 +55,6 @@ public class SolicitudTimbrado {
   public void setPeriodoMeses(String periodoMeses) { this.periodoMeses = periodoMeses; }
   public Integer getPeriodoAnio() { return periodoAnio; }
   public void setPeriodoAnio(Integer periodoAnio) { this.periodoAnio = periodoAnio; }
+  public String getUuidSustitucion() { return uuidSustitucion; }
+  public void setUuidSustitucion(String uuidSustitucion) { this.uuidSustitucion = uuidSustitucion; }
 }

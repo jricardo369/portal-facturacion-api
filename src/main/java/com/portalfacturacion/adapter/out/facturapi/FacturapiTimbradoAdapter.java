@@ -133,6 +133,12 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       global.put("year", s.getPeriodoAnio());
       cuerpo.put("global", global);
     }
+    if (s.getUuidSustitucion() != null && !s.getUuidSustitucion().isBlank()) {
+      Map<String, Object> relacion = new HashMap<>();
+      relacion.put("relationship", "04");
+      relacion.put("documents", List.of(s.getUuidSustitucion().trim()));
+      cuerpo.put("related_documents", List.of(relacion));
+    }
     return cuerpo;
   }
 
