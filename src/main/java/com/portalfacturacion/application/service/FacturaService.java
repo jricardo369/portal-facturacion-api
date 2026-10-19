@@ -68,7 +68,7 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
   }
 
   @Override
-  @Transactional(readOnly = true)
+  @Transactional(readOnly = true, noRollbackFor = FacturaNoEncontradaException.class)
   public Factura obtenerPorUuid(String uuid) {
     if (uuid == null || uuid.isBlank()) {
       throw new IllegalArgumentException("El UUID es obligatorio");
@@ -78,7 +78,7 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
   }
 
   @Override
-  @Transactional(readOnly = true)
+  @Transactional(readOnly = true, noRollbackFor = FacturaNoEncontradaException.class)
   public Factura obtenerPorNoTicket(String noTicket) {
     if (noTicket == null || noTicket.isBlank()) {
       throw new IllegalArgumentException("El numero de ticket es obligatorio");
