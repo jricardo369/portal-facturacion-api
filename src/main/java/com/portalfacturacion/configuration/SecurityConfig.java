@@ -40,7 +40,9 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers("/error").permitAll()
             .requestMatchers("/api/v1/auth/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/v1/facturacion/datos-factura", "/api/v1/facturacion/factura", "/api/v1/images/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/v1/facturacion/datos-factura", "/api/v1/facturacion/factura",
+                "/api/v1/facturacion/factura/xml", "/api/v1/facturacion/factura/pdf", "/api/v1/facturacion/factura/zip",
+                "/api/v1/images/**").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/v1/facturacion/facturar").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/v1/facturacion/enviar-correo", "/api/v1/facturacion/reenviar-factura").permitAll()
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
