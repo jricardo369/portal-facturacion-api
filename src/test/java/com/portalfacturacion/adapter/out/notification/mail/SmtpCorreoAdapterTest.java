@@ -43,6 +43,7 @@ class SmtpCorreoAdapterTest {
     props.setNombreRemitente("Portal Facturacion");
     props.setRutaLayouts(temp.toString());
     props.setRutaLogo("http://localhost:8080/api/v1/images/logo.png");
+    props.setLogoInline(false);
     adapter = new SmtpCorreoAdapter(mailSender, props);
     lenient().when(mailSender.createMimeMessage())
       .thenAnswer(inv -> new MimeMessage(jakarta.mail.Session.getInstance(new Properties())));
@@ -106,5 +107,28 @@ class SmtpCorreoAdapterTest {
       adapter.enviarTextoPlano("cliente@correo.com", "Asunto", "<p>Hola</p>"));
     assertDoesNotThrow(() ->
       adapter.enviarTextoPlanoConAdjuntos("cliente@correo.com", "Asunto", "<p>Hola</p>", List.of()));
+  }
+
+  @Test
+  void logoInline_AgregaImagenEmbebidaEnElMensaje() throws Exception {
+    props.setLogoInline(true);
+    Files.writeString(temp.resolve("correo_factura.html"),
+      "<img src=\"${logo}\"><h1>${titulo}</h1>", StandardCharsets.UTF_8);
+    PlantillaCorreoService plantillas = new PlantillaCorreoService(props);
+    CorreoPreparado correo = plantillas.construirCorreo("correo_factura.html",
+      "titulo=Factura generada", "folio=F-123");
+
+    adapter.enviarTextoPlano("cliente@correo.com", correo.asunto(), correo.contenido());
+
+    ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+    verify(mailSender).send(captor.capture());
+    MimeMessage enviado = captor.getValue();
+    jakarta.mail.internet.MimeMultipart mixed =
+      (jakarta.mail.internet.MimeMultipart) enviado.getContent();
+    jakarta.mail.internet.MimeMultipart related =
+      (jakarta.mail.internet.MimeMultipart) mixed.getBodyPart(0).getContent();
+    assertEquals(2, related.getCount());
+    assertTrue(related.getBodyPart(0).getContent().toString().contains("cid:logo-oso-despierto"));
+    assertEquals("<logo-oso-despierto>", related.getBodyPart(1).getHeader("Content-ID")[0]);
   }
 }

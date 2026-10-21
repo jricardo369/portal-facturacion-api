@@ -18,6 +18,7 @@ public class CorreoProperties {
   private long timeoutMs = 8000;
   private String rutaLayouts;
   private String rutaLogo;
+  private boolean logoInline = true;
 
   public String getHost() { return host; }
   public void setHost(String host) { this.host = host; }
@@ -41,6 +42,8 @@ public class CorreoProperties {
   public void setRutaLayouts(String rutaLayouts) { this.rutaLayouts = rutaLayouts; }
   public String getRutaLogo() { return rutaLogo; }
   public void setRutaLogo(String rutaLogo) { this.rutaLogo = rutaLogo; }
+  public boolean isLogoInline() { return logoInline; }
+  public void setLogoInline(boolean logoInline) { this.logoInline = logoInline; }
 
   public boolean isConfigured() {
     return host != null && !host.isBlank() && remitenteEfectivo() != null && !remitenteEfectivo().isBlank();

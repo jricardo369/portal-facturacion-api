@@ -24,6 +24,7 @@ class PlantillaCorreoServiceTest {
     props = new CorreoProperties();
     props.setRutaLayouts(layouts.toString());
     props.setRutaLogo("http://localhost:8080/api/v1/images/logo.png");
+    props.setLogoInline(false);
     props.setRemitente("base@tudominio.com");
     props.setNombreRemitente("Base");
     service = new PlantillaCorreoService(props);
@@ -69,5 +70,67 @@ class PlantillaCorreoServiceTest {
   @Test
   void leerLayout_inexistente_lanzaExcepcion() {
     assertThrows(IllegalArgumentException.class, () -> service.leerLayout("no_existe.html"));
+  }
+
+  @Test
+  void leerLayout_caeAClasspathSiLaRutaNoExiste() {
+    props.setRutaLayouts(layouts.resolve("no-existe").toString());
+    String html = service.leerLayout("correo_factura.html");
+    assertTrue(html.contains("${logo}"));
+  }
+
+  @Test
+  void logoConLayoutViejoYUrlCompleta_NoDuplicaRuta() throws Exception {
+    Files.writeString(layouts.resolve("viejo.html"),
+      "<img src=\"${logo}images/logo.png\">", StandardCharsets.UTF_8);
+    props.setRutaLogo("http://ec2-54-215-12-132.us-west-1.compute.amazonaws.com/api/v1/images/logo.png");
+    String html = service.construirContenido("viejo.html");
+    assertTrue(html.contains("src=\"http://ec2-54-215-12-132.us-west-1.compute.amazonaws.com/api/v1/images/logo.png\""));
+  }
+
+  @Test
+  void logoConLayoutViejoYBase_ConstruyeUrlCompleta() throws Exception {
+    Files.writeString(layouts.resolve("viejo.html"),
+      "<img src=\"${logo}images/logo.png\">", StandardCharsets.UTF_8);
+    props.setRutaLogo("http://localhost:18080/api/v1/");
+    String html = service.construirContenido("viejo.html");
+    assertTrue(html.contains("src=\"http://localhost:18080/api/v1/images/logo.png\""));
+  }
+
+  @Test
+  void logoConLayoutNuevoYBase_ConstruyeUrlCompleta() throws Exception {
+    Files.writeString(layouts.resolve("nuevo.html"),
+      "<img src=\"${logo}\">", StandardCharsets.UTF_8);
+    props.setRutaLogo("http://localhost:18080/api/v1/");
+    String html = service.construirContenido("nuevo.html");
+    assertTrue(html.contains("src=\"http://localhost:18080/api/v1/images/logo.png\""));
+  }
+
+  @Test
+  void logoConLayoutNuevoYUrlCompleta_NoModificaLaUrl() throws Exception {
+    Files.writeString(layouts.resolve("nuevo.html"),
+      "<img src=\"${logo}\">", StandardCharsets.UTF_8);
+    props.setRutaLogo("http://localhost:18080/api/v1/images/logo.png");
+    String html = service.construirContenido("nuevo.html");
+    assertTrue(html.contains("src=\"http://localhost:18080/api/v1/images/logo.png\""));
+  }
+
+  @Test
+  void logoInline_UsaContentIdEnVezDeUrl() throws Exception {
+    props.setLogoInline(true);
+    Files.writeString(layouts.resolve("nuevo.html"),
+      "<img src=\"${logo}\">", StandardCharsets.UTF_8);
+    String html = service.construirContenido("nuevo.html");
+    assertTrue(html.contains("src=\"cid:logo-oso-despierto\""));
+    assertFalse(html.contains("http://localhost:18080"));
+  }
+
+  @Test
+  void logoInline_NormalizaLayoutAntiguo() throws Exception {
+    props.setLogoInline(true);
+    Files.writeString(layouts.resolve("viejo.html"),
+      "<img src=\"${logo}images/logo.png\">", StandardCharsets.UTF_8);
+    String html = service.construirContenido("viejo.html");
+    assertTrue(html.contains("src=\"cid:logo-oso-despierto\""));
   }
 }

@@ -77,7 +77,9 @@ app:
     auth: true
     starttls: true
     timeout-ms: 8000
-    ruta-logo: http://localhost:8080/api/v1/images/logo.png
+    ruta-layouts: C:/config-apps/portal-facturacion-configs/html-mails
+    logo-inline: true             # embebe el logo en el correo (cid), no depende de URL publica
+    ruta-logo: http://localhost:8080/api/v1/images/logo.png  # solo fallback si logo-inline=false
 ```
 
 **Variables de entorno** usadas en el código (sin defaults en el proyecto): `CORREO_HOST`, `CORREO_PORT`, `CORREO_USERNAME`, `CORREO_PASSWORD`, `CORREO_AUTH`, `CORREO_STARTTLS`, `CORREO_TIMEOUT_MS`, `CORREO_RUTA_LAYOUTS`, `CORREO_RUTA_LOGO`, `FUDO_API_KEY`, `FUDO_API_SECRET`, `FUDO_API_BASE_URL`, `FUDO_AUTH_URL`, `FUDO_TIMEOUT_MS`.
@@ -329,3 +331,9 @@ Repo → Settings → Secrets and variables → Actions → New repository secre
 - GHCR_PAT: el token del paso 1
 Nada más. No necesitas crear Environment ni package manual: la imagen en GHCR (ghcr.io/tu-usuario/portal-facturacion-api) se crea sola en el primer push, y GITHUB_TOKEN lo pone Actions automáticamente.
 Verifica además en Repo → Settings → Actions → General → Workflow permissions que esté en Read and write permissions, si no el push a GHCR falla.a
+
+
+
+
+# RFC DE PRUEBA
+XAXX010101000

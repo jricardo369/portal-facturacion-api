@@ -51,4 +51,8 @@ app:
     starttls: true
     timeout-ms: 8000
     ruta-layouts: /opt/portal-facturacion-configs/html-mails
+    # Logo embebido dentro del correo (cid). Recomendado: no depende de que el
+    # cliente de correo pueda descargar imagenes remotas.
+    logo-inline: true
+    # Solo se usa si logo-inline=false: URL publica https del logo.
     ruta-logo: https://tudominio.com/api/v1/images/logo.png
