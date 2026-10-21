@@ -18,6 +18,7 @@ import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketPago;
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -210,7 +211,7 @@ public class FacturacionService {
       "total=" + (factura.getTotal() != null ? factura.getTotal().toPlainString() : "0.00"),
       "cliente=" + (factura.getCliente() != null ? factura.getCliente() : "Sin nombre"));
     enviarCorreoTrasCommit(guardado.getCorreoElectronico(), preparado.asunto(),
-        preparado.contenido(), factura.getFacturapiId());
+        preparado.contenido(), factura);
     return new DatosFactura(datos.getTicket(), guardado);
   }
 
@@ -229,7 +230,7 @@ public class FacturacionService {
       "total=" + (factura.getTotal() != null ? factura.getTotal().toPlainString() : "0.00"),
       "cliente=" + (factura.getCliente() != null ? factura.getCliente() : "Sin nombre"));
     enviarCorreoTrasCommit(guardado.getCorreoElectronico(), preparado.asunto(),
-        preparado.contenido(), factura.getFacturapiId());
+        preparado.contenido(), factura);
     return new DatosFactura(datos.getTicket(), guardado);
   }
 
@@ -262,35 +263,71 @@ public class FacturacionService {
   }
 
   private void enviarCorreoTrasCommit(String destinatario, String asunto, String contenido,
-                                      String facturapiId) {
+                                      Factura factura) {
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-      enviarCorreoConAdjuntos(destinatario, asunto, contenido, facturapiId);
+      enviarCorreoConAdjuntos(destinatario, asunto, contenido, factura);
       return;
     }
     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
       @Override
       public void afterCommit() {
-        enviarCorreoConAdjuntos(destinatario, asunto, contenido, facturapiId);
+        enviarCorreoConAdjuntos(destinatario, asunto, contenido, factura);
       }
     });
   }
 
   private void enviarCorreoConAdjuntos(String destinatario, String asunto, String contenido,
-                                       String facturapiId) {
+                                       Factura factura) {
+    String facturapiId = factura != null ? factura.getFacturapiId() : null;
     try {
       if (facturapiId == null || facturapiId.isBlank()) {
         correo.enviarTextoPlano(destinatario, asunto, contenido);
         return;
       }
-      byte[] zip = facturapi.obtenerZip(facturapiId);
-      File adjunto = File.createTempFile("cfdi-", ".zip");
-      adjunto.deleteOnExit();
-      Files.write(adjunto.toPath(), zip);
-      correo.enviarTextoPlanoConAdjuntos(destinatario, asunto, contenido, List.of(adjunto));
+      List<File> adjuntos = new ArrayList<>();
+      adjuntos.add(crearAdjunto(facturapi.obtenerXml(facturapiId), nombreAdjunto(factura, "xml"), destinatario));
+      adjuntos.add(crearAdjunto(facturapi.obtenerPdf(facturapiId), nombreAdjunto(factura, "pdf"), destinatario));
+      List<File> validos = adjuntos.stream().filter(java.util.Objects::nonNull).toList();
+      if (validos.isEmpty()) {
+        correo.enviarTextoPlano(destinatario, asunto, contenido);
+        return;
+      }
+      correo.enviarTextoPlanoConAdjuntos(destinatario, asunto, contenido, validos);
     } catch (Exception ex) {
       log.warn("No fue posible adjuntar el CFDI al correo a={}: {}", destinatario, ex.getMessage());
       correo.enviarTextoPlano(destinatario, asunto, contenido);
     }
+  }
+
+  private File crearAdjunto(byte[] contenido, String nombre, String destinatario) {
+    if (contenido == null || contenido.length == 0) {
+      log.warn("El adjunto {} viene vacio; se omite. destino={}", nombre, destinatario);
+      return null;
+    }
+    try {
+      File archivo = File.createTempFile("cfdi-", "-" + nombre);
+      archivo.deleteOnExit();
+      Files.write(archivo.toPath(), contenido);
+      return archivo;
+    } catch (IOException ex) {
+      log.warn("No se pudo preparar el adjunto {}: {}", nombre, ex.getMessage());
+      return null;
+    }
+  }
+
+  private String nombreAdjunto(Factura factura, String extension) {
+    String base = null;
+    if (factura != null) {
+      if (factura.getUuid() != null && !factura.getUuid().isBlank()) {
+        base = factura.getUuid();
+      } else if (factura.getFolio() != null && !factura.getFolio().isBlank()) {
+        base = factura.getFolio();
+      }
+    }
+    if (base == null) {
+      base = "factura";
+    }
+    return base.replaceAll("[^A-Za-z0-9._-]", "_") + "." + extension;
   }
 
   @Transactional
@@ -341,16 +378,53 @@ public class FacturacionService {
     if (facturaService.existePorNoTicket(noTicket)) {
       throw new FacturaDuplicadaException("La factura ya ha sido generada para el ticket " + noTicket);
     }
-    FacturaTimbrada timbrada = timbrar(ticket, cliente);
-    return crearFactura(ticket, cliente, noTicket, timbrada);
+    Ticket ticketFacturable = completarTicketConFuDo(ticket, noTicket);
+    FacturaTimbrada timbrada = timbrar(ticketFacturable, cliente);
+    return crearFactura(ticketFacturable, cliente, noTicket, timbrada);
   }
 
   private Factura timbrarYRefacturar(Ticket ticket, Cliente cliente) {
     String noTicket = validarTicketParaFacturar(ticket, "refacturar");
+    Ticket ticketFacturable = completarTicketConFuDo(ticket, noTicket);
     Factura previa = facturaPreviaTimbrable(noTicket);
-    FacturaTimbrada timbrada = timbrar(ticket, cliente, previa != null ? previa.getUuid() : null);
+    FacturaTimbrada timbrada = timbrar(ticketFacturable, cliente, previa != null ? previa.getUuid() : null);
     cancelarFacturaPrevia(previa, timbrada.getUuid());
-    return crearFactura(ticket, cliente, noTicket, timbrada);
+    return crearFactura(ticketFacturable, cliente, noTicket, timbrada);
+  }
+
+  private Ticket completarTicketConFuDo(Ticket ticket, String noTicket) {
+    if (tienePartidas(ticket)) {
+      return ticket;
+    }
+    log.warn("El ticket {} llego sin partidas (items); se consultan en FuDo", noTicket);
+    Ticket desdeFudo = null;
+    try {
+      desdeFudo = ticketService.obtenerTicket(noTicket);
+    } catch (RuntimeException ex) {
+      log.warn("No fue posible consultar el ticket {} en FuDo: {}", noTicket, ex.getMessage());
+    }
+    if (!tienePartidas(desdeFudo)) {
+      throw new IllegalArgumentException(
+          "El ticket " + noTicket + " no tiene partidas (items) para facturar");
+    }
+    ticket.setItems(desdeFudo.getItems());
+    if (ticket.getTotal() == null) {
+      ticket.setTotal(desdeFudo.getTotal());
+    }
+    if (ticket.getSubtotal() == null) {
+      ticket.setSubtotal(desdeFudo.getSubtotal());
+    }
+    if (ticket.getImpuestos() == null) {
+      ticket.setImpuestos(desdeFudo.getImpuestos());
+    }
+    if (ticket.getPagos() == null || ticket.getPagos().isEmpty()) {
+      ticket.setPagos(desdeFudo.getPagos());
+    }
+    return ticket;
+  }
+
+  private boolean tienePartidas(Ticket ticket) {
+    return ticket != null && ticket.getItems() != null && !ticket.getItems().isEmpty();
   }
 
   private Factura facturaPreviaTimbrable(String noTicket) {
@@ -423,9 +497,17 @@ public class FacturacionService {
         }
         String descripcion = item.getDescripcion() != null && !item.getDescripcion().isBlank()
             ? item.getDescripcion() : "Item " + item.getId();
+        if (precio == null) {
+          throw new IllegalArgumentException("La partida " + item.getId()
+              + " no tiene precio unitario ni importe para facturar");
+        }
         items.add(new ItemSolicitudTimbrado(cantidad, descripcion, precio,
             propiedades.getProductKey()));
       }
+    }
+    if (items.isEmpty()) {
+      throw new IllegalArgumentException("El ticket " + ticket.getNumeroTicket()
+          + " no tiene partidas (items) para facturar");
     }
     solicitud.setItems(items);
     return solicitud;

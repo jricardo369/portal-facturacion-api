@@ -4,6 +4,8 @@ import com.portalfacturacion.application.port.out.facturapi.FacturapiTimbradoPor
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import com.portalfacturacion.configuration.FacturapiProperties;
 import com.portalfacturacion.domain.exception.FacturaDuplicadaException;
+import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
+import com.portalfacturacion.domain.exception.TicketNoEncontradoException;
 import com.portalfacturacion.domain.exception.TimbradoFallidoException;
 import com.portalfacturacion.domain.model.Cliente;
 import com.portalfacturacion.domain.model.DatosFactura;
@@ -14,6 +16,7 @@ import com.portalfacturacion.domain.model.SolicitudTimbrado;
 import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
+import java.io.File;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -113,7 +116,8 @@ class FacturacionServiceTest {
     when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
     when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
     stubCrearFactura();
-    when(facturapi.obtenerZip("fp1")).thenReturn("zip".getBytes());
+    when(facturapi.obtenerXml("fp1")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp1")).thenReturn("pdf".getBytes());
     DatosFactura datos = new DatosFactura(ticket(), c);
 
     DatosFactura resultado = service.facturar(datos);
@@ -141,8 +145,13 @@ class FacturacionServiceTest {
     assertThat(f.getTotal()).isEqualByComparingTo("1160.00");
 
     assertThat(resultado.getTicket().getTotal()).isEqualByComparingTo("1160.00");
+    ArgumentCaptor<List<File>> adjuntos = ArgumentCaptor.forClass(List.class);
     verify(correo).enviarTextoPlanoConAdjuntos(eq("cliente@correo.com"), anyString(),
-        anyString(), anyList());
+        anyString(), adjuntos.capture());
+    assertThat(adjuntos.getValue()).hasSize(2);
+    assertThat(adjuntos.getValue().stream().map(File::getName).toList())
+        .anyMatch(n -> n.endsWith(".xml"))
+        .anyMatch(n -> n.endsWith(".pdf"));
   }
 
   @Test
@@ -204,7 +213,8 @@ class FacturacionServiceTest {
     when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
     when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
     stubCrearFactura();
-    when(facturapi.obtenerZip("fp1")).thenReturn("zip".getBytes());
+    when(facturapi.obtenerXml("fp1")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp1")).thenReturn("pdf".getBytes());
     DatosFactura datos = new DatosFactura(ticket(), c);
 
     service.facturar(datos);
@@ -229,7 +239,8 @@ class FacturacionServiceTest {
     when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
     when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
     stubCrearFactura();
-    when(facturapi.obtenerZip("fp1")).thenReturn("zip".getBytes());
+    when(facturapi.obtenerXml("fp1")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp1")).thenReturn("pdf".getBytes());
     DatosFactura datos = new DatosFactura(ticket(), c);
 
     service.facturar(datos);
@@ -261,7 +272,8 @@ class FacturacionServiceTest {
     when(facturaService.actualizarPorId(any(), any(Factura.class)))
         .thenAnswer(inv -> inv.getArgument(1));
     stubCrearFactura();
-    when(facturapi.obtenerZip("fp2")).thenReturn("zip".getBytes());
+    when(facturapi.obtenerXml("fp2")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp2")).thenReturn("pdf".getBytes());
     DatosFactura datos = new DatosFactura(ticket(), c);
 
     service.refacturar(datos);
@@ -289,13 +301,52 @@ class FacturacionServiceTest {
     previa.setEstatus("Cargada");
     when(facturaService.obtenerPorNoTicket("T-1")).thenReturn(previa);
     stubCrearFactura();
-    when(facturapi.obtenerZip("fp2")).thenReturn("zip".getBytes());
+    when(facturapi.obtenerXml("fp2")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp2")).thenReturn("pdf".getBytes());
     DatosFactura datos = new DatosFactura(ticket(), c);
 
     service.refacturar(datos);
 
     verify(facturaService).eliminarPorId(9L);
     verify(facturapi, never()).cancelar(anyString(), anyString(), any());
+  }
+
+  @Test
+  void refacturar_sinItems_consultaFuDoYTimbraConSusPartidas() {
+    Cliente c = cliente();
+    when(clienteService.obtenerPorRfc("AAAA111111AAA")).thenReturn(c);
+    when(ticketService.obtenerTicket("T-1")).thenReturn(ticket());
+    when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp2", "uuid-2"));
+    when(facturaService.obtenerPorNoTicket("T-1")).thenThrow(new FacturaNoEncontradaException("no existe"));
+    stubCrearFactura();
+    when(facturapi.obtenerXml("fp2")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp2")).thenReturn("pdf".getBytes());
+    Ticket sinPartidas = new Ticket("T-1", new BigDecimal("1160.00"), new BigDecimal("1160.00"),
+        null, "Cargada", "EAT-IN", Instant.now(), Instant.now(), "Cliente Ticket", null, null, false,
+        List.of(), List.of());
+
+    service.refacturar(new DatosFactura(sinPartidas, c));
+
+    ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
+    verify(facturapi).timbrar(solicitud.capture());
+    assertThat(solicitud.getValue().getItems()).hasSize(1);
+    assertThat(solicitud.getValue().getItems().get(0).getDescripcion()).isEqualTo("Cafe");
+    assertThat(sinPartidas.getItems()).hasSize(1);
+  }
+
+  @Test
+  void refacturar_sinItemsYSinPartidasEnFuDo_lanzaErrorAntesDeTimbrar() {
+    Cliente c = cliente();
+    when(clienteService.obtenerPorRfc("AAAA111111AAA")).thenReturn(c);
+    when(ticketService.obtenerTicket("T-1")).thenThrow(new TicketNoEncontradoException("no existe"));
+    Ticket sinPartidas = new Ticket("T-1", new BigDecimal("1160.00"), new BigDecimal("1160.00"),
+        null, "Cargada", "EAT-IN", Instant.now(), Instant.now(), "Cliente Ticket", null, null, false,
+        List.of(), List.of());
+
+    assertThatThrownBy(() -> service.refacturar(new DatosFactura(sinPartidas, c)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("partidas (items)");
+    verify(facturapi, never()).timbrar(any());
   }
 
   @Test
