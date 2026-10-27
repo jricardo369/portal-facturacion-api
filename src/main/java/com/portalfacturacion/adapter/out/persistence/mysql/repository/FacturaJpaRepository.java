@@ -9,6 +9,6 @@ public interface FacturaJpaRepository extends JpaRepository<FacturaEntity, Long>
   Optional<FacturaEntity> findByUuid(String uuid);
   Optional<FacturaEntity> findBySerieAndFolio(String serie, String folio);
   boolean existsBySerieAndFolio(String serie, String folio);
-  Optional<FacturaEntity> findByNoTicket(String noTicket);
-  boolean existsByNoTicket(String noTicket);
+  Optional<FacturaEntity> findFirstByNoTicketAndEstatusOrderByCreatedAtDesc(String noTicket, String estatus);
+  boolean existsByNoTicketAndEstatus(String noTicket, String estatus);
 }

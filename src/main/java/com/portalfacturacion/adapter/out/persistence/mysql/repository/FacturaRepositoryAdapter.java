@@ -53,12 +53,12 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
 
   @Override
   public Optional<Factura> findByNoTicket(String noTicket) {
-    return jpa.findByNoTicket(noTicket).map(FacturaMapper::toDomain);
+    return jpa.findFirstByNoTicketAndEstatusOrderByCreatedAtDesc(noTicket, "Cargada").map(FacturaMapper::toDomain);
   }
 
   @Override
   public boolean existsByNoTicket(String noTicket) {
-    return jpa.existsByNoTicket(noTicket);
+    return jpa.existsByNoTicketAndEstatus(noTicket, "Cargada");
   }
 
   @Override
