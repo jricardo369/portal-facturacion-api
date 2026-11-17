@@ -66,7 +66,7 @@ app:
     tax-included: true          # true si los precios de FuDo incluyen IVA (Facturapi desglosa 16%)
     payment-form: "01"          # forma de pago SAT default (01 efectivo)
     payment-method: "PUE"
-    product-key: "01010101"     # clave prod/serv SAT para items del ticket
+    product-key: "90101500"     # clave prod/serv SAT del concepto consolidado
     motivo-cancelacion: "02"
     publico-general-periodicity: "day"  # periodicidad factura global: day|week|fortnight|month|two_months
   correo:

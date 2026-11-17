@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -133,7 +134,29 @@ public class FacturacionController {
     Ticket ticket = new Ticket(r.numeroTicket(), r.total(), r.subtotal(), r.impuestos(),
         null, r.tipoVenta(), r.fechaEmision(), r.fechaCierre(),
         r.clienteTicket(), null, null, r.facturable(), items, pagos);
-    return new DatosFactura(ticket, toClienteDomain(r.cliente()));
+    ticket.setIva(r.iva());
+    ticket.setIsr(r.isr());
+    ticket.setCedular(r.cedular());
+    List<Ticket> tickets = new ArrayList<>();
+    if (r.tickets() != null && !r.tickets().isEmpty()) {
+      for (DatosFacturaResponse t : r.tickets()) {
+        List<TicketItem> tkItems = t.items() == null ? List.of() : t.items().stream()
+            .map(i -> new TicketItem(i.id(), i.descripcion(), i.cantidad(), i.precioUnitario(), i.importe()))
+            .toList();
+        List<TicketPago> tkPagos = t.pagos() == null ? List.of() : t.pagos().stream()
+            .map(p -> new TicketPago(p.id(), p.metodo(), p.monto())).toList();
+        Ticket tk = new Ticket(t.numeroTicket(), t.total(), t.subtotal(), t.impuestos(),
+            null, t.tipoVenta(), t.fechaEmision(), t.fechaCierre(),
+            t.clienteTicket(), null, null, t.facturable(), tkItems, tkPagos);
+        tk.setIva(t.iva());
+        tk.setIsr(t.isr());
+        tk.setCedular(t.cedular());
+        tickets.add(tk);
+      }
+    } else {
+      tickets.add(ticket);
+    }
+    return new DatosFactura(tickets, toClienteDomain(r.cliente()));
   }
 
   private Cliente toClienteDomain(ClienteResponse c) {
@@ -154,10 +177,40 @@ public class FacturacionController {
             i.getPrecioUnitario(), i.getImporte())).toList();
     List<TicketPagoResponse> pagos = t.getPagos() == null ? List.of() : t.getPagos().stream()
         .map(p -> new TicketPagoResponse(p.getId(), p.getMetodo(), p.getMonto())).toList();
-    return new DatosFacturaResponse(t.getNumeroTicket(), t.getTotal(), t.getSubtotal(),
-        t.getImpuestos(), t.getTipoVenta(), t.getFechaEmision(), t.getFechaCierre(),
-        t.getCliente(), t.isFacturable(), items, pagos, resolverTipoPago(pagos),
-        toClienteResponse(datos.getCliente()));
+    List<DatosFacturaResponse> ticketsResponse = new ArrayList<>();
+    List<Ticket> tickets = datos.getTickets() != null && !datos.getTickets().isEmpty()
+        ? datos.getTickets()
+        : List.of(t);
+    for (Ticket tk : tickets) {
+      List<TicketItemResponse> tkItems = tk.getItems() == null ? List.of() : tk.getItems().stream()
+          .map(i -> new TicketItemResponse(i.getId(), i.getDescripcion(), i.getCantidad(),
+              i.getPrecioUnitario(), i.getImporte())).toList();
+      List<TicketPagoResponse> tkPagos = tk.getPagos() == null ? List.of() : tk.getPagos().stream()
+          .map(p -> new TicketPagoResponse(p.getId(), p.getMetodo(), p.getMonto())).toList();
+      ticketsResponse.add(new DatosFacturaResponse(tk.getNumeroTicket(), tk.getTotal(), tk.getSubtotal(),
+          tk.getImpuestos(), tk.getIva(), tk.getIsr(), tk.getCedular(), tk.getTipoVenta(),
+          tk.getFechaEmision(), tk.getFechaCierre(), tk.getCliente(), tk.isFacturable(), tkItems, tkPagos,
+          resolverTipoPago(tkPagos), toClienteResponse(datos.getCliente()), List.of()));
+    }
+    BigDecimal total = BigDecimal.ZERO;
+    BigDecimal subtotal = BigDecimal.ZERO;
+    BigDecimal impuesto = BigDecimal.ZERO;
+    BigDecimal iva = BigDecimal.ZERO;
+    BigDecimal isr = BigDecimal.ZERO;
+    BigDecimal cedular = BigDecimal.ZERO;
+    for (Ticket tk : tickets) {
+      total = total.add(tk.getTotal() != null ? tk.getTotal() : BigDecimal.ZERO);
+      subtotal = subtotal.add(tk.getSubtotal() != null ? tk.getSubtotal() : BigDecimal.ZERO);
+      impuesto = impuesto.add(tk.getImpuestos() != null ? tk.getImpuestos() : BigDecimal.ZERO);
+      iva = iva.add(tk.getIva() != null ? tk.getIva() : BigDecimal.ZERO);
+      isr = isr.add(tk.getIsr() != null ? tk.getIsr() : BigDecimal.ZERO);
+      cedular = cedular.add(tk.getCedular() != null ? tk.getCedular() : BigDecimal.ZERO);
+    }
+    return new DatosFacturaResponse(tickets.get(0).getNumeroTicket(), total, subtotal,
+        impuesto, iva, isr, cedular, tickets.get(0).getTipoVenta(),
+        tickets.get(0).getFechaEmision(), tickets.get(0).getFechaCierre(),
+        tickets.get(0).getCliente(), tickets.get(0).isFacturable(), items, pagos, resolverTipoPago(pagos),
+        toClienteResponse(datos.getCliente()), ticketsResponse);
   }
 
   private String resolverTipoPago(List<TicketPagoResponse> pagos) {
@@ -185,8 +238,8 @@ public class FacturacionController {
   private FacturaResponse toFacturaResponse(Factura f) {
     return new FacturaResponse(f.getIdFactura(), f.getFolio(), f.getSerie(), f.getFecha(),
         f.getCliente(), f.getRfc(), f.getRazonSocial(), f.getNoTicket(),
-        f.getSubtotal(), f.getImpuesto(), f.getTotal(),
+        f.getSubtotal(), f.getImpuesto(), f.getIva(), f.getIsr(), f.getCedular(), f.getTotal(),
         f.getEstatus(), f.getUuid(), f.getFacturapiId(), f.getCancellationStatus(),
-        f.getCreatedAt(), f.getUpdatedAt());
+        f.getCreatedAt(), f.getUpdatedAt(), f.getTickets());
   }
 }

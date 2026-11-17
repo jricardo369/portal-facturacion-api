@@ -15,7 +15,10 @@ import com.portalfacturacion.domain.model.ItemSolicitudTimbrado;
 import com.portalfacturacion.domain.model.ResultadoCancelacion;
 import com.portalfacturacion.domain.model.SolicitudTimbrado;
 import com.portalfacturacion.domain.model.Ticket;
+import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
+import com.portalfacturacion.adapter.out.persistence.mysql.entity.TicketFacturaEntity;
+import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +35,8 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -51,11 +56,12 @@ public class FacturacionService {
   private final CorreoPort correo;
   private final FacturapiTimbradoPort facturapi;
   private final FacturapiProperties propiedades;
+  private final TicketFacturaJpaRepository ticketFacturaJpaRepository;
 
   public FacturacionService(TicketService ticketService, ClienteService clienteService,
                               FacturaService facturaService, PlantillaCorreoService plantillas,
                               CorreoPort correo, FacturapiTimbradoPort facturapi,
-                              FacturapiProperties propiedades) {
+                              FacturapiProperties propiedades, TicketFacturaJpaRepository ticketFacturaJpaRepository) {
     this.ticketService = ticketService;
     this.clienteService = clienteService;
     this.facturaService = facturaService;
@@ -63,6 +69,7 @@ public class FacturacionService {
     this.correo = correo;
     this.facturapi = facturapi;
     this.propiedades = propiedades;
+    this.ticketFacturaJpaRepository = ticketFacturaJpaRepository;
   }
 
   public DatosFactura obtenerDatosFactura(String rfc, String numeroTicket) {
@@ -130,12 +137,13 @@ public class FacturacionService {
     BigDecimal totalTicket = ticket.getTotal();
     if (totalTicket == null) {
       throw new TicketNoEncontradoException(
-          "No se encontró el ticket con el total capturado");
+          //"No se encontró el ticket con el total capturado");
+          "No se encontro la factura con los datos proporcionados");
     }
     BigDecimal diferencia = totalTicket.subtract(total).abs();
     if (diferencia.compareTo(new BigDecimal("0.01")) > 0) {
       throw new TicketNoEncontradoException(
-          "No se encontró el ticket con el total capturado");
+          "No se encontro la factura con los datos proporcionados");
     }
   }
 
@@ -203,8 +211,12 @@ public class FacturacionService {
     } else {
       guardado = clienteService.crear(cliente);
     }
-    Factura factura = timbrarYRegistrar(datos.getTicket(), guardado);
-    aplicarMontosTimbrados(datos.getTicket(), factura);
+    List<Ticket> ticketsParaFacturar = datos.getTickets() != null && !datos.getTickets().isEmpty()
+        ? datos.getTickets()
+        : List.of(datos.getTicket());
+    validarAdminMultiTicket(ticketsParaFacturar);
+    Factura factura = timbrarYRegistrar(ticketsParaFacturar, guardado);
+    aplicarMontosTimbrados(ticketsParaFacturar.get(0), factura);
     CorreoPreparado preparado = plantillas.construirCorreo("correo_factura.html",
       "titulo=" + "Facturación Oso Despierto",
       "folio=" + factura.getFolio(),
@@ -373,14 +385,20 @@ public class FacturacionService {
     return factura.getFacturapiId();
   }
 
-  private Factura timbrarYRegistrar(Ticket ticket, Cliente cliente) {
-    String noTicket = validarTicketParaFacturar(ticket, "facturar");
-    if (facturaService.existePorNoTicket(noTicket)) {
-      throw new FacturaDuplicadaException("La factura ya ha sido generada para el ticket " + noTicket);
+  private Factura timbrarYRegistrar(List<Ticket> tickets, Cliente cliente) {
+    List<Ticket> ticketsValidos = new ArrayList<>();
+    for (Ticket ticket : tickets) {
+      String noTicket = validarTicketParaFacturar(ticket, "facturar");
+      if (facturaService.existePorNoTicket(noTicket)) {
+        throw new FacturaDuplicadaException("La factura ya ha sido generada para el ticket " + noTicket);
+      }
+      ticketsValidos.add(completarTicketConFuDo(ticket, noTicket));
     }
-    Ticket ticketFacturable = completarTicketConFuDo(ticket, noTicket);
+    Ticket ticketFacturable = ticketsValidos.size() == 1 ? ticketsValidos.get(0) : consolidarTickets(ticketsValidos);
     FacturaTimbrada timbrada = timbrar(ticketFacturable, cliente);
-    return crearFactura(ticketFacturable, cliente, noTicket, timbrada);
+    Factura factura = crearFactura(ticketFacturable, cliente, ticketsValidos.get(0).getNumeroTicket().trim(), timbrada);
+    guardarTicketsFactura(ticketsValidos, factura);
+    return factura;
   }
 
   private Factura timbrarYRefacturar(Ticket ticket, Cliente cliente) {
@@ -446,6 +464,21 @@ public class FacturacionService {
     return ticket.getNumeroTicket().trim();
   }
 
+  private boolean esAdmin() {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    return auth != null && auth.getAuthorities().stream()
+        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+  }
+
+  private void validarAdminMultiTicket(List<Ticket> tickets) {
+    if (tickets == null || tickets.size() <= 1) {
+      return;
+    }
+    if (!esAdmin()) {
+      throw new AccessDeniedException("Solo los administradores pueden facturar multiples tickets");
+    }
+  }
+
   private String validarRfc(String rfc, String operacion) {
     if (rfc == null || rfc.isBlank()) {
       throw new IllegalArgumentException("El RFC del cliente es obligatorio para " + operacion);
@@ -488,29 +521,100 @@ public class FacturacionService {
     solicitud.setFolioExterno(ticket.getNumeroTicket());
     aplicarReglasPublicoGeneral(solicitud, ticket);
     List<ItemSolicitudTimbrado> items = new ArrayList<>();
-    if (ticket.getItems() != null) {
-      for (var item : ticket.getItems()) {
-        BigDecimal cantidad = item.getCantidad() != null ? item.getCantidad() : BigDecimal.ONE;
-        BigDecimal precio = item.getPrecioUnitario();
-        if (precio == null && item.getImporte() != null && cantidad.compareTo(BigDecimal.ZERO) > 0) {
-          precio = item.getImporte().divide(cantidad, 2, java.math.RoundingMode.HALF_UP);
-        }
-        String descripcion = item.getDescripcion() != null && !item.getDescripcion().isBlank()
-            ? item.getDescripcion() : "Item " + item.getId();
-        if (precio == null) {
-          throw new IllegalArgumentException("La partida " + item.getId()
-              + " no tiene precio unitario ni importe para facturar");
-        }
-        items.add(new ItemSolicitudTimbrado(cantidad, descripcion, precio,
-            propiedades.getProductKey()));
-      }
-    }
-    if (items.isEmpty()) {
-      throw new IllegalArgumentException("El ticket " + ticket.getNumeroTicket()
-          + " no tiene partidas (items) para facturar");
+    List<Ticket> tickets = ticket.getTickets() != null && !ticket.getTickets().isEmpty()
+        ? ticket.getTickets()
+        : List.of(ticket);
+    for (Ticket t : tickets) {
+      items.add(conceptoConsolidado(t));
     }
     solicitud.setItems(items);
     return solicitud;
+  }
+
+  private ItemSolicitudTimbrado conceptoConsolidado(Ticket ticket) {
+    String descripcion = "Consumo de alimentos " + fechaOperacion(ticket)
+        + " Ticket " + ticket.getNumeroTicket();
+    BigDecimal precio = resolverImporteConcepto(ticket);
+    ItemSolicitudTimbrado concepto = new ItemSolicitudTimbrado(BigDecimal.ONE, descripcion, precio,
+        propiedades.getProductKey());
+    concepto.setIva(ticket.getIva());
+    concepto.setIsr(ticket.getIsr());
+    return concepto;
+  }
+
+  private BigDecimal resolverImporteConcepto(Ticket ticket) {
+    BigDecimal total = ticket.getTotal();
+    BigDecimal subtotal = ticket.getSubtotal();
+    BigDecimal partidas = sumaImportes(ticket.getItems());
+    BigDecimal principal = propiedades.isTaxIncluded() ? total : subtotal;
+    BigDecimal alterno = propiedades.isTaxIncluded() ? subtotal : total;
+    BigDecimal precio = principal != null ? principal : (partidas != null ? partidas : alterno);
+    if (precio == null || precio.compareTo(BigDecimal.ZERO) == 0) {
+      throw new IllegalArgumentException("El ticket " + ticket.getNumeroTicket()
+          + " no tiene importe para facturar");
+    }
+    return precio;
+  }
+
+  private BigDecimal sumaImportes(List<TicketItem> items) {
+    if (items == null || items.isEmpty()) {
+      return null;
+    }
+    BigDecimal suma = BigDecimal.ZERO;
+    for (TicketItem item : items) {
+      if (item.getImporte() != null) {
+        suma = suma.add(item.getImporte());
+      }
+    }
+    return suma.compareTo(BigDecimal.ZERO) == 0 ? null : suma;
+  }
+
+  private Ticket consolidarTickets(List<Ticket> tickets) {
+    Ticket first = tickets.get(0);
+    Ticket consolidated = new Ticket();
+    consolidated.setNumeroTicket(String.join(", ", tickets.stream().map(Ticket::getNumeroTicket).toList()));
+    consolidated.setSubtotal(sumMontos(tickets, t -> t.getSubtotal()));
+    consolidated.setImpuestos(sumMontos(tickets, t -> t.getImpuestos()));
+    consolidated.setTotal(sumMontos(tickets, t -> t.getTotal()));
+    consolidated.setIva(sumMontos(tickets, t -> t.getIva()));
+    consolidated.setIsr(sumMontos(tickets, t -> t.getIsr()));
+    consolidated.setCedular(sumMontos(tickets, t -> t.getCedular()));
+    consolidated.setFechaEmision(first.getFechaEmision());
+    consolidated.setFechaCierre(first.getFechaCierre());
+    consolidated.setTipoVenta(first.getTipoVenta());
+    consolidated.setItems(new ArrayList<>());
+    consolidated.setPagos(new ArrayList<>());
+    consolidated.setTickets(tickets);
+    return consolidated;
+  }
+
+  private BigDecimal sumMontos(List<Ticket> tickets, java.util.function.Function<Ticket, BigDecimal> mapper) {
+    BigDecimal suma = BigDecimal.ZERO;
+    for (Ticket t : tickets) {
+      BigDecimal valor = mapper.apply(t);
+      if (valor != null) {
+        suma = suma.add(valor);
+      }
+    }
+    return suma;
+  }
+
+  private void guardarTicketsFactura(List<Ticket> tickets, Factura factura) {
+    if (factura == null || factura.getIdFactura() == null) {
+      return;
+    }
+    for (Ticket ticket : tickets) {
+      TicketFacturaEntity entity = new TicketFacturaEntity();
+      entity.setIdFactura(factura.getIdFactura());
+      entity.setNumeroTicket(ticket.getNumeroTicket());
+      entity.setFechaEmision(ticket.getFechaEmision());
+      entity.setSubtotal(ticket.getSubtotal() != null ? ticket.getSubtotal() : BigDecimal.ZERO);
+      entity.setIva(ticket.getIva() != null ? ticket.getIva() : BigDecimal.ZERO);
+      entity.setIsr(ticket.getIsr() != null ? ticket.getIsr() : BigDecimal.ZERO);
+      entity.setCedular(ticket.getCedular() != null ? ticket.getCedular() : BigDecimal.ZERO);
+      entity.setTotal(ticket.getTotal() != null ? ticket.getTotal() : BigDecimal.ZERO);
+      ticketFacturaJpaRepository.save(entity);
+    }
   }
 
   private static final String RFC_PUBLICO_GENERAL = "XAXX010101000";
@@ -610,6 +714,9 @@ public class FacturacionService {
     factura.setNoTicket(noTicket);
     factura.setSubtotal(timbrada.getSubtotal() != null ? timbrada.getSubtotal() : ticket.getSubtotal());
     factura.setImpuesto(timbrada.getImpuesto() != null ? timbrada.getImpuesto() : ticket.getImpuestos());
+    factura.setIva(ticket.getIva());
+    factura.setIsr(ticket.getIsr());
+    factura.setCedular(ticket.getCedular());
     factura.setTotal(timbrada.getTotal() != null ? timbrada.getTotal() : ticket.getTotal());
     factura.setEstatus("Cargada");
     factura.setUuid(timbrada.getUuid());

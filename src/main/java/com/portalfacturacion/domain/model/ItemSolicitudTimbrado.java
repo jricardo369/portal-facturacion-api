@@ -8,6 +8,8 @@ public class ItemSolicitudTimbrado {
   private String descripcion;
   private BigDecimal precio;
   private String clave;
+  private BigDecimal iva;
+  private BigDecimal isr;
 
   public ItemSolicitudTimbrado() {
   }
@@ -27,4 +29,8 @@ public class ItemSolicitudTimbrado {
   public void setPrecio(BigDecimal precio) { this.precio = precio; }
   public String getClave() { return clave; }
   public void setClave(String clave) { this.clave = clave; }
+  public BigDecimal getIva() { return iva; }
+  public void setIva(BigDecimal iva) { this.iva = iva; }
+  public BigDecimal getIsr() { return isr; }
+  public void setIsr(BigDecimal isr) { this.isr = isr; }
 }

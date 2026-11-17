@@ -57,7 +57,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         || "/api/v1/facturacion/factura/xml".equals(path)
         || "/api/v1/facturacion/factura/pdf".equals(path)
         || "/api/v1/facturacion/factura/zip".equals(path)
-        || "/api/v1/facturacion/facturar".equals(path)
         || path.startsWith("/api/v1/images")
         || path.startsWith("/v3/api-docs")
         || path.startsWith("/swagger-ui")

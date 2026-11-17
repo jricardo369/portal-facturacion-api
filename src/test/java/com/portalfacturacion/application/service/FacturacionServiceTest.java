@@ -13,6 +13,8 @@ import com.portalfacturacion.domain.model.Factura;
 import com.portalfacturacion.domain.model.FacturaTimbrada;
 import com.portalfacturacion.domain.model.ResultadoCancelacion;
 import com.portalfacturacion.domain.model.SolicitudTimbrado;
+import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
+import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
@@ -54,7 +56,7 @@ class FacturacionServiceTest {
     correo = mock(CorreoPort.class);
     facturapi = mock(FacturapiTimbradoPort.class);
     service = new FacturacionService(ticketService, clienteService, facturaService,
-        plantillas, correo, facturapi, new FacturapiProperties());
+        plantillas, correo, facturapi, new FacturapiProperties(), mock(TicketFacturaJpaRepository.class));
     when(plantillas.construirCorreo(anyString(), any(String[].class)))
         .thenReturn(new CorreoPreparado("remitente", "Oso", "asunto", "<html></html>"));
   }
@@ -118,7 +120,10 @@ class FacturacionServiceTest {
     stubCrearFactura();
     when(facturapi.obtenerXml("fp1")).thenReturn("<xml/>".getBytes());
     when(facturapi.obtenerPdf("fp1")).thenReturn("pdf".getBytes());
-    DatosFactura datos = new DatosFactura(ticket(), c);
+    Ticket tk = ticket();
+    tk.setIva(new BigDecimal("160.00"));
+    tk.setIsr(new BigDecimal("12.50"));
+    DatosFactura datos = new DatosFactura(tk, c);
 
     DatosFactura resultado = service.facturar(datos);
 
@@ -130,7 +135,14 @@ class FacturacionServiceTest {
     assertThat(solicitud.getValue().getMetodoPago()).isEqualTo("PUE");
     assertThat(solicitud.getValue().isPrecioConImpuestos()).isTrue();
     assertThat(solicitud.getValue().getItems()).hasSize(1);
+    assertThat(solicitud.getValue().getItems().get(0).getCantidad()).isEqualByComparingTo("1");
     assertThat(solicitud.getValue().getItems().get(0).getPrecio()).isEqualByComparingTo("1160.00");
+    assertThat(solicitud.getValue().getItems().get(0).getClave()).isEqualTo("90101500");
+    assertThat(solicitud.getValue().getItems().get(0).getIva()).isEqualByComparingTo("160.00");
+    assertThat(solicitud.getValue().getItems().get(0).getIsr()).isEqualByComparingTo("12.50");
+    assertThat(solicitud.getValue().getItems().get(0).getDescripcion())
+        .startsWith("Consumo de alimentos ")
+        .contains("Ticket T-1");
 
     ArgumentCaptor<Factura> creada = ArgumentCaptor.forClass(Factura.class);
     verify(facturaService).crear(creada.capture());
@@ -152,6 +164,30 @@ class FacturacionServiceTest {
     assertThat(adjuntos.getValue().stream().map(File::getName).toList())
         .anyMatch(n -> n.endsWith(".xml"))
         .anyMatch(n -> n.endsWith(".pdf"));
+  }
+
+  @Test
+  void facturar_conDescuento_usaTotalDelTicketParaElConcepto() {
+    Cliente c = cliente();
+    stubGuardarCliente(c);
+    when(facturaService.existePorNoTicket("T-1")).thenReturn(false);
+    when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp1", "uuid-1"));
+    stubCrearFactura();
+    when(facturapi.obtenerXml("fp1")).thenReturn("<xml/>".getBytes());
+    when(facturapi.obtenerPdf("fp1")).thenReturn("pdf".getBytes());
+    Ticket conDescuento = new Ticket("T-1", new BigDecimal("412.00"), new BigDecimal("500.00"),
+        null, "CLOSED", "EAT-IN", Instant.now(), Instant.now(), "Cliente Ticket", "Mesa 1",
+        null, true,
+        List.of(new TicketItem("10", "Cafe", BigDecimal.ONE, new BigDecimal("500.00"),
+            new BigDecimal("500.00"))),
+        List.of(new TicketPago("20", "Cash", new BigDecimal("412.00"))));
+
+    service.facturar(new DatosFactura(conDescuento, c));
+
+    ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
+    verify(facturapi).timbrar(solicitud.capture());
+    assertThat(solicitud.getValue().getItems().get(0).getPrecio())
+        .isEqualByComparingTo("412.00");
   }
 
   @Test
@@ -330,8 +366,33 @@ class FacturacionServiceTest {
     ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
     verify(facturapi).timbrar(solicitud.capture());
     assertThat(solicitud.getValue().getItems()).hasSize(1);
-    assertThat(solicitud.getValue().getItems().get(0).getDescripcion()).isEqualTo("Cafe");
+    assertThat(solicitud.getValue().getItems().get(0).getDescripcion())
+        .startsWith("Consumo de alimentos ")
+        .contains("Ticket T-1");
     assertThat(sinPartidas.getItems()).hasSize(1);
+  }
+
+  @Test
+  void refacturar_totalNulo_consolidaConceptoConImporteDePartidas() {
+    Cliente c = cliente();
+    when(clienteService.obtenerPorRfc("AAAA111111AAA")).thenReturn(c);
+    when(facturapi.timbrar(any(SolicitudTimbrado.class))).thenReturn(timbrada("fp3", "uuid-3"));
+    when(facturaService.obtenerPorNoTicket("T-1")).thenThrow(new FacturaNoEncontradaException("no existe"));
+    stubCrearFactura();
+    Ticket sinTotal = new Ticket("T-1", null, null, null, "Cargada", "EAT-IN",
+        Instant.now(), Instant.now(), "Cliente Ticket", null, null, true,
+        List.of(new TicketItem("10", "Cafe", BigDecimal.ONE, new BigDecimal("580.00"),
+                new BigDecimal("580.00")),
+            new TicketItem("11", "Postre", BigDecimal.ONE, new BigDecimal("580.00"),
+                new BigDecimal("580.00"))),
+        List.of(new TicketPago("20", "Cash", new BigDecimal("1160.00"))));
+
+    service.refacturar(new DatosFactura(sinTotal, c));
+
+    ArgumentCaptor<SolicitudTimbrado> solicitud = ArgumentCaptor.forClass(SolicitudTimbrado.class);
+    verify(facturapi).timbrar(solicitud.capture());
+    assertThat(solicitud.getValue().getItems()).hasSize(1);
+    assertThat(solicitud.getValue().getItems().get(0).getPrecio()).isEqualByComparingTo("1160.00");
   }
 
   @Test

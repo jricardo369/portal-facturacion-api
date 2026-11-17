@@ -2,6 +2,7 @@ package com.portalfacturacion.adapter.out.notification.mail;
 
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import com.portalfacturacion.application.service.LogoProvider;
+
 import com.portalfacturacion.configuration.CorreoProperties;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
@@ -84,11 +85,13 @@ public class SmtpCorreoAdapter implements CorreoPort {
       html.setContent(contenido != null ? contenido : "", "text/html; charset=UTF-8");
       related.addBodyPart(html);
 
-      MimeBodyPart imagen = new MimeBodyPart();
-      imagen.setContent(logo, logos.contentType());
-      imagen.setHeader("Content-Disposition", "inline; filename=\"logo.png\"");
-      imagen.setHeader("Content-ID", "<" + LogoProvider.CID + ">");
-      related.addBodyPart(imagen);
+      if (logo != null) {
+        MimeBodyPart imagen = new MimeBodyPart();
+        imagen.setContent(logo, logos.contentType());
+        imagen.setHeader("Content-Disposition", "inline; filename=\"logo.png\"");
+        imagen.setHeader("Content-ID", "<" + LogoProvider.CID + ">");
+        related.addBodyPart(imagen);
+      }
 
       MimeBodyPart relatedPart = new MimeBodyPart();
       relatedPart.setContent(related);

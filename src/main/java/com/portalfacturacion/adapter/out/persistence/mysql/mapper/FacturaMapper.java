@@ -12,11 +12,15 @@ public final class FacturaMapper {
     if (e == null) {
       return null;
     }
-    return new Factura(e.getIdFactura(), e.getFolio(), e.getSerie(), e.getFecha(),
+    Factura f = new Factura(e.getIdFactura(), e.getFolio(), e.getSerie(), e.getFecha(),
         e.getCliente(), e.getRfc(), e.getRazonSocial(), e.getNoTicket(),
         e.getSubtotal(), e.getImpuesto(), e.getTotal(),
         e.getEstatus(), e.getUuid(), e.getFacturapiId(), e.getCancellationStatus(),
         e.getCreatedAt(), e.getUpdatedAt());
+    f.setIva(e.getIva());
+    f.setIsr(e.getIsr());
+    f.setCedular(e.getCedular());
+    return f;
   }
 
   public static FacturaEntity toEntity(Factura d) {
@@ -29,9 +33,12 @@ public final class FacturaMapper {
     e.setRfc(d.getRfc());
     e.setRazonSocial(d.getRazonSocial());
     e.setNoTicket(d.getNoTicket());
-    e.setSubtotal(d.getSubtotal());
-    e.setImpuesto(d.getImpuesto());
-    e.setTotal(d.getTotal());
+    e.setSubtotal(d.getSubtotal() == null ? java.math.BigDecimal.ZERO : d.getSubtotal());
+    e.setImpuesto(d.getImpuesto() == null ? java.math.BigDecimal.ZERO : d.getImpuesto());
+    e.setIva(d.getIva() == null ? java.math.BigDecimal.ZERO : d.getIva());
+    e.setIsr(d.getIsr() == null ? java.math.BigDecimal.ZERO : d.getIsr());
+    e.setCedular(d.getCedular() == null ? java.math.BigDecimal.ZERO : d.getCedular());
+    e.setTotal(d.getTotal() == null ? java.math.BigDecimal.ZERO : d.getTotal());
     e.setEstatus(d.getEstatus());
     e.setUuid(d.getUuid());
     e.setFacturapiId(d.getFacturapiId());

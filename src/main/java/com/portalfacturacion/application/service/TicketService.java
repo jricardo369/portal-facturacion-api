@@ -21,7 +21,17 @@ public class TicketService implements ConsultarTicketUseCase {
     if (folio.isEmpty()) {
       throw new IllegalArgumentException("El numero de ticket es obligatorio");
     }
-    return fudoTicketPort.buscarPorFolio(folio)
+    Ticket ticket = fudoTicketPort.buscarPorFolio(folio)
         .orElseThrow(() -> new TicketNoEncontradoException("Ticket no encontrado con folio " + folio));
+    validarEstadoFacturable(ticket);
+    return ticket;
+  }
+
+  private void validarEstadoFacturable(Ticket ticket) {
+    boolean cerrado = "CLOSED".equalsIgnoreCase(ticket.getEstado());
+    boolean sinPagos = ticket.getPagos() == null || ticket.getPagos().isEmpty();
+    if (!cerrado && sinPagos) {
+      throw new IllegalArgumentException("El ticket no tiene el estatus correcto para su facturación");
+    }
   }
 }

@@ -5,11 +5,14 @@ import java.time.Instant;
 import java.util.List;
 
 public record DatosFacturaResponse(String numeroTicket, BigDecimal total, BigDecimal subtotal,
-                                   BigDecimal impuestos, String tipoVenta,
+                                   BigDecimal impuestos, BigDecimal iva, BigDecimal isr,
+                                   BigDecimal cedular,
+                                   String tipoVenta,
                                    Instant fechaEmision, Instant fechaCierre,
                                    String clienteTicket, boolean facturable,
                                    List<TicketItemResponse> items,
                                    List<TicketPagoResponse> pagos,
                                    String tipoPago,
-                                   ClienteResponse cliente) {
+                                   ClienteResponse cliente,
+                                   List<DatosFacturaResponse> tickets) {
 }

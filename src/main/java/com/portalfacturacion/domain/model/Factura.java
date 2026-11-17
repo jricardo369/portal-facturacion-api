@@ -2,6 +2,7 @@ package com.portalfacturacion.domain.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public class Factura {
   private Long idFactura;
@@ -14,6 +15,9 @@ public class Factura {
   private String noTicket;
   private BigDecimal subtotal;
   private BigDecimal impuesto;
+  private BigDecimal iva;
+  private BigDecimal isr;
+  private BigDecimal cedular;
   private BigDecimal total;
   private String estatus;
   private String uuid;
@@ -21,6 +25,7 @@ public class Factura {
   private String cancellationStatus;
   private Instant createdAt;
   private Instant updatedAt;
+  private List<TicketFactura> tickets = List.of();
 
   public Factura() {
   }
@@ -71,6 +76,12 @@ public class Factura {
   public void setImpuesto(BigDecimal impuesto) { this.impuesto = impuesto; }
   public BigDecimal getTotal() { return total; }
   public void setTotal(BigDecimal total) { this.total = total; }
+  public BigDecimal getIva() { return iva; }
+  public void setIva(BigDecimal iva) { this.iva = iva; }
+  public BigDecimal getIsr() { return isr; }
+  public void setIsr(BigDecimal isr) { this.isr = isr; }
+  public BigDecimal getCedular() { return cedular; }
+  public void setCedular(BigDecimal cedular) { this.cedular = cedular; }
   public String getEstatus() { return estatus; }
   public void setEstatus(String estatus) { this.estatus = estatus; }
   public String getUuid() { return uuid; }
@@ -83,4 +94,6 @@ public class Factura {
   public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }
   public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+  public List<TicketFactura> getTickets() { return tickets; }
+  public void setTickets(List<TicketFactura> tickets) { this.tickets = tickets == null ? List.of() : List.copyOf(tickets); }
 }

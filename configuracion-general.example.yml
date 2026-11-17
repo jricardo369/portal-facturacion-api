@@ -39,7 +39,7 @@ app:
     tax-included: true
     payment-form: "01"
     payment-method: "PUE"
-    product-key: "01010101"
+    product-key: "90101500"
     motivo-cancelacion: "02"
     publico-general-periodicity: "day"
   correo:
@@ -56,3 +56,4 @@ app:
     logo-inline: true
     # Solo se usa si logo-inline=false: URL publica https del logo.
     ruta-logo: https://tudominio.com/api/v1/images/logo.png
+    ruta-texto-factura:  /opt/portal-facturacion-configs/html-mails/texto_factura.png

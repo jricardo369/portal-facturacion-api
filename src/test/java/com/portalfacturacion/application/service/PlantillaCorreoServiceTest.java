@@ -133,4 +133,19 @@ class PlantillaCorreoServiceTest {
     String html = service.construirContenido("viejo.html");
     assertTrue(html.contains("src=\"cid:logo-oso-despierto\""));
   }
+
+  @Test
+  void textoFactura_usaValorPorDefectoSiNoEstaConfigurado() throws Exception {
+    Files.writeString(layouts.resolve("texto.html"), "<img src=\"${texto_factura}\">", StandardCharsets.UTF_8);
+    String html = service.construirContenido("texto.html");
+    assertTrue(html.contains("http://localhost:18080/api/v1/images/texto_factura.png"));
+  }
+
+  @Test
+  void textoFactura_usaRutaConfigurada() throws Exception {
+    props.setRutaTextoFactura("https://tudominio.com/images/texto_factura.png");
+    Files.writeString(layouts.resolve("texto.html"), "<img src=\"${texto_factura}\">", StandardCharsets.UTF_8);
+    String html = service.construirContenido("texto.html");
+    assertTrue(html.contains("https://tudominio.com/images/texto_factura.png"));
+  }
 }

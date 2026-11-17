@@ -13,7 +13,7 @@ public class FacturapiProperties {
   private boolean taxIncluded = true;
   private String paymentForm = "01";
   private String paymentMethod = "PUE";
-  private String productKey = "01010101";
+  private String productKey = "90101500";
   private String motivoCancelacion = "02";
   private String publicoGeneralPeriodicity = "day";
 

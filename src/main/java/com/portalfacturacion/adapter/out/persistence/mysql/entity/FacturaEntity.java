@@ -45,6 +45,15 @@ public class FacturaEntity {
   @Column(name = "impuesto", nullable = false, precision = 12, scale = 2)
   private BigDecimal impuesto;
 
+  @Column(name = "iva", nullable = false, precision = 12, scale = 2)
+  private BigDecimal iva = BigDecimal.ZERO;
+
+  @Column(name = "isr", nullable = false, precision = 12, scale = 2)
+  private BigDecimal isr = BigDecimal.ZERO;
+
+  @Column(name = "cedular", nullable = false, precision = 12, scale = 2)
+  private BigDecimal cedular = BigDecimal.ZERO;
+
   @Column(name = "total", nullable = false, precision = 12, scale = 2)
   private BigDecimal total;
 
@@ -86,6 +95,12 @@ public class FacturaEntity {
   public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
   public BigDecimal getImpuesto() { return impuesto; }
   public void setImpuesto(BigDecimal impuesto) { this.impuesto = impuesto; }
+  public BigDecimal getIva() { return iva; }
+  public void setIva(BigDecimal iva) { this.iva = iva; }
+  public BigDecimal getIsr() { return isr; }
+  public void setIsr(BigDecimal isr) { this.isr = isr; }
+  public BigDecimal getCedular() { return cedular; }
+  public void setCedular(BigDecimal cedular) { this.cedular = cedular; }
   public BigDecimal getTotal() { return total; }
   public void setTotal(BigDecimal total) { this.total = total; }
   public String getEstatus() { return estatus; }

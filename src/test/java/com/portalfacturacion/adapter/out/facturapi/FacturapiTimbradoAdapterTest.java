@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portalfacturacion.configuration.FacturapiProperties;
 import com.portalfacturacion.domain.exception.TimbradoFallidoException;
 import com.portalfacturacion.domain.model.FacturaTimbrada;
+import com.portalfacturacion.domain.model.ItemSolicitudTimbrado;
 import com.portalfacturacion.domain.model.SolicitudTimbrado;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -124,6 +126,69 @@ class FacturapiTimbradoAdapterTest {
   void mapearFactura_respuestaSinId_lanzaExcepcion() {
     assertThatThrownBy(() -> crearAdapter().mapearFactura(new ObjectMapper().createObjectNode()))
         .isInstanceOf(TimbradoFallidoException.class);
+  }
+
+  @Test
+  void mapearFactura_conRetencionIsr_descuentaDelImpuestoNeto() throws Exception {
+    String json = """
+        {
+          "id": "abc",
+          "uuid": "uuid-3",
+          "status": "valid",
+          "total": 1147.50,
+          "items": [
+            {
+              "quantity": 1,
+              "product": {
+                "description": "Consumo",
+                "price": 1147.50,
+                "tax_included": true,
+                "taxes": [
+                  { "type": "IVA", "rate": 0.16, "withholding": false },
+                  { "type": "ISR", "rate": 0.0125, "withholding": true }
+                ]
+              }
+            }
+          ]
+        }
+        """;
+
+    FacturaTimbrada f = crearAdapter().mapearFactura(new ObjectMapper().readTree(json));
+
+    assertThat(f.getSubtotal()).isEqualByComparingTo("1000.00");
+    assertThat(f.getImpuesto()).isEqualByComparingTo("147.50");
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void construirCuerpo_conIvaEIsr_incluyeImpuestosTrasladadosYRetenidos() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("AAAA111111AAA");
+    s.setRazonSocial("Empresa X");
+    s.setRegimenFiscal("601");
+    s.setUsoCfdi("G03");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    ItemSolicitudTimbrado item = new ItemSolicitudTimbrado(BigDecimal.ONE, "Consumo",
+        new BigDecimal("1147.50"), "90101500");
+    item.setIva(new BigDecimal("160.00"));
+    item.setIsr(new BigDecimal("12.50"));
+    s.setItems(List.of(item));
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    List<Map<String, Object>> items = (List<Map<String, Object>>) cuerpo.get("items");
+    Map<String, Object> product = (Map<String, Object>) items.get(0).get("product");
+    List<Map<String, Object>> taxes = (List<Map<String, Object>>) product.get("taxes");
+    assertThat(taxes).hasSize(2);
+    assertThat(taxes.get(0))
+        .containsEntry("type", "IVA")
+        .containsEntry("rate", new BigDecimal("0.16"))
+        .containsEntry("withholding", false);
+    assertThat(taxes.get(1))
+        .containsEntry("type", "ISR")
+        .containsEntry("rate", new BigDecimal("0.0125"))
+        .containsEntry("withholding", true);
   }
 
   @Test

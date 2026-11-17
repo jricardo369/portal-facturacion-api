@@ -9,6 +9,9 @@ public class Ticket {
   private BigDecimal total;
   private BigDecimal subtotal;
   private BigDecimal impuestos;
+  private BigDecimal iva;
+  private BigDecimal isr;
+  private BigDecimal cedular;
   private String estado;
   private String tipoVenta;
   private Instant fechaEmision;
@@ -19,6 +22,7 @@ public class Ticket {
   private boolean facturable;
   private List<TicketItem> items;
   private List<TicketPago> pagos;
+  private List<Ticket> tickets = List.of();
 
   public Ticket() {
   }
@@ -51,6 +55,12 @@ public class Ticket {
   public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
   public BigDecimal getImpuestos() { return impuestos; }
   public void setImpuestos(BigDecimal impuestos) { this.impuestos = impuestos; }
+  public BigDecimal getIva() { return iva; }
+  public void setIva(BigDecimal iva) { this.iva = iva; }
+  public BigDecimal getIsr() { return isr; }
+  public void setIsr(BigDecimal isr) { this.isr = isr; }
+  public BigDecimal getCedular() { return cedular; }
+  public void setCedular(BigDecimal cedular) { this.cedular = cedular; }
   public String getEstado() { return estado; }
   public void setEstado(String estado) { this.estado = estado; }
   public String getTipoVenta() { return tipoVenta; }
@@ -71,4 +81,7 @@ public class Ticket {
   public void setItems(List<TicketItem> items) { this.items = items; }
   public List<TicketPago> getPagos() { return pagos; }
   public void setPagos(List<TicketPago> pagos) { this.pagos = pagos; }
+
+  public List<Ticket> getTickets() { return tickets; }
+  public void setTickets(List<Ticket> tickets) { this.tickets = tickets == null ? List.of() : List.copyOf(tickets); }
 }

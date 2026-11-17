@@ -75,6 +75,7 @@ public class PlantillaCorreoService {
     } else {
       valores.putIfAbsent("logo", resolverLogo(plantilla, rutaLogo));
     }
+
     String resultado = plantilla;
     for (Map.Entry<String, String> entry : valores.entrySet()) {
       String valor = entry.getValue() != null ? entry.getValue() : "";

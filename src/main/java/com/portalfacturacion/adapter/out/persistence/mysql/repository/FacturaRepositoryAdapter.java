@@ -1,7 +1,10 @@
 package com.portalfacturacion.adapter.out.persistence.mysql.repository;
 
 import com.portalfacturacion.adapter.out.persistence.mysql.entity.FacturaEntity;
+import com.portalfacturacion.adapter.out.persistence.mysql.entity.TicketFacturaEntity;
 import com.portalfacturacion.adapter.out.persistence.mysql.mapper.FacturaMapper;
+import com.portalfacturacion.domain.model.TicketFactura;
+import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.application.port.in.usuario.PagedResult;
 import com.portalfacturacion.application.port.out.persistence.FacturaRepositoryPort;
 import com.portalfacturacion.domain.model.Factura;
@@ -19,9 +22,11 @@ import org.springframework.stereotype.Component;
 public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
 
   private final FacturaJpaRepository jpa;
+  private final TicketFacturaJpaRepository ticketFacturaJpaRepository;
 
-  public FacturaRepositoryAdapter(FacturaJpaRepository jpa) {
+  public FacturaRepositoryAdapter(FacturaJpaRepository jpa, TicketFacturaJpaRepository ticketFacturaJpaRepository) {
     this.jpa = jpa;
+    this.ticketFacturaJpaRepository = ticketFacturaJpaRepository;
   }
 
   @Override
@@ -78,7 +83,24 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
       }
       return cb.and(predicates.toArray(new Predicate[0]));
     }, pageable);
-    List<Factura> content = result.getContent().stream().map(FacturaMapper::toDomain).toList();
+    List<Factura> content = result.getContent().stream().map(e -> {
+      Factura f = FacturaMapper.toDomain(e);
+       f.setTickets(ticketFacturaJpaRepository.findByIdFactura(e.getIdFactura())
+           .stream().map(te -> {
+             TicketFactura tf = new TicketFactura();
+             tf.setId(te.getId());
+             tf.setNumeroTicket(te.getNumeroTicket());
+             tf.setFechaEmision(te.getFechaEmision());
+             tf.setHora(te.getHora());
+             tf.setSubtotal(te.getSubtotal());
+             tf.setIva(te.getIva());
+             tf.setIsr(te.getIsr());
+             tf.setCedular(te.getCedular());
+             tf.setTotal(te.getTotal());
+             return tf;
+           }).toList());
+      return f;
+    }).toList();
     return new PagedResult<>(content, result.getNumber(), result.getSize(),
         result.getTotalElements(), result.getTotalPages());
   }

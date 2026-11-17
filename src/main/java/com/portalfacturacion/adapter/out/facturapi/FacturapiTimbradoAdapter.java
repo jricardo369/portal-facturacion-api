@@ -34,6 +34,8 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
   private static final Logger log = LoggerFactory.getLogger(FacturapiTimbradoAdapter.class);
   private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER =
       new com.fasterxml.jackson.databind.ObjectMapper();
+  private static final BigDecimal TASA_IVA = new BigDecimal("0.16");
+  private static final BigDecimal TASA_ISR = new BigDecimal("0.0125");
 
   private final FacturapiProperties properties;
   private final RestClient restClient;
@@ -111,6 +113,9 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
         producto.put("product_key", item.getClave());
         producto.put("price", item.getPrecio());
         producto.put("tax_included", s.isPrecioConImpuestos());
+        if (item.getIva() != null || item.getIsr() != null) {
+          producto.put("taxes", impuestosProducto(item));
+        }
         Map<String, Object> fila = new HashMap<>();
         fila.put("quantity", item.getCantidad());
         fila.put("product", producto);
@@ -140,6 +145,31 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       cuerpo.put("related_documents", List.of(relacion));
     }
     return cuerpo;
+  }
+
+  private List<Map<String, Object>> impuestosProducto(ItemSolicitudTimbrado item) {
+    List<Map<String, Object>> impuestos = new ArrayList<>();
+    if (esPositivo(item.getIva())) {
+      Map<String, Object> iva = new HashMap<>();
+      iva.put("type", "IVA");
+      iva.put("rate", TASA_IVA);
+      iva.put("factor", "Tasa");
+      iva.put("withholding", false);
+      impuestos.add(iva);
+    }
+    if (esPositivo(item.getIsr())) {
+      Map<String, Object> isr = new HashMap<>();
+      isr.put("type", "ISR");
+      isr.put("rate", TASA_ISR);
+      isr.put("factor", "Tasa");
+      isr.put("withholding", true);
+      impuestos.add(isr);
+    }
+    return impuestos;
+  }
+
+  private boolean esPositivo(BigDecimal valor) {
+    return valor != null && valor.compareTo(BigDecimal.ZERO) > 0;
   }
 
   @Override
@@ -233,24 +263,32 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       BigDecimal precio = new BigDecimal(producto.get("price").asText());
       BigDecimal cantidad = item.hasNonNull("quantity")
           ? new BigDecimal(item.get("quantity").asText()) : BigDecimal.ONE;
-      BigDecimal tasa = BigDecimal.ZERO;
+      BigDecimal tasaTrasladada = BigDecimal.ZERO;
+      BigDecimal tasaRetenida = BigDecimal.ZERO;
       for (JsonNode imp : producto.path("taxes")) {
-        if (imp.hasNonNull("rate")) {
-          tasa = tasa.add(new BigDecimal(imp.get("rate").asText()));
+        if (!imp.hasNonNull("rate")) {
+          continue;
+        }
+        BigDecimal tasa = new BigDecimal(imp.get("rate").asText());
+        if (imp.path("withholding").asBoolean(false)) {
+          tasaRetenida = tasaRetenida.add(tasa);
+        } else {
+          tasaTrasladada = tasaTrasladada.add(tasa);
         }
       }
+      BigDecimal tasaNeta = tasaTrasladada.subtract(tasaRetenida);
       boolean incluido = !producto.hasNonNull("tax_included") || producto.get("tax_included").asBoolean();
       BigDecimal baseUnitario;
       BigDecimal impuestoUnitario;
-      if (tasa.compareTo(BigDecimal.ZERO) == 0) {
+      if (tasaNeta.compareTo(BigDecimal.ZERO) == 0) {
         baseUnitario = precio;
         impuestoUnitario = BigDecimal.ZERO;
       } else if (incluido) {
-        baseUnitario = precio.divide(BigDecimal.ONE.add(tasa), 6, RoundingMode.HALF_UP);
+        baseUnitario = precio.divide(BigDecimal.ONE.add(tasaNeta), 6, RoundingMode.HALF_UP);
         impuestoUnitario = precio.subtract(baseUnitario);
       } else {
         baseUnitario = precio;
-        impuestoUnitario = precio.multiply(tasa);
+        impuestoUnitario = precio.multiply(tasaNeta);
       }
       subtotal = subtotal.add(baseUnitario.multiply(cantidad));
       impuesto = impuesto.add(impuestoUnitario.multiply(cantidad));

@@ -49,7 +49,7 @@ public class TicketController {
 
   private TicketResponse toResponse(Ticket t) {
     return new TicketResponse(t.getNumeroTicket(), t.getTotal(), t.getSubtotal(), t.getImpuestos(),
-        t.getEstado(), t.getTipoVenta(), t.getFechaEmision(), t.getFechaCierre(), t.getCliente(),
+        t.getIva(), t.getIsr(), t.getCedular(), t.getEstado(), t.getTipoVenta(), t.getFechaEmision(), t.getFechaCierre(), t.getCliente(),
         t.getMesa(), t.getSucursal(), t.isFacturable(),
         t.getItems() == null ? java.util.List.of() : t.getItems().stream()
             .map(i -> new TicketItemResponse(i.getId(), i.getDescripcion(), i.getCantidad(),
