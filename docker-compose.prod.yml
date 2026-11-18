@@ -62,7 +62,7 @@ services:
     environment:
       APP_DOMAIN: ${APP_DOMAIN:-api.tudominio.com}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/portal-facturacion-configs/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

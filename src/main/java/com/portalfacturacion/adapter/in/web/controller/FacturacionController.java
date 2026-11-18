@@ -4,6 +4,7 @@ import com.portalfacturacion.adapter.in.web.response.ClienteResponse;
 import com.portalfacturacion.adapter.in.web.response.DatosFacturaResponse;
 import com.portalfacturacion.adapter.in.web.response.FacturaResponse;
 import com.portalfacturacion.adapter.in.web.response.TicketItemResponse;
+import com.portalfacturacion.adapter.in.web.response.TicketFacturaResponse;
 import com.portalfacturacion.adapter.in.web.response.TicketPagoResponse;
 import com.portalfacturacion.application.service.FacturacionService;
 import com.portalfacturacion.domain.model.Cliente;
@@ -235,11 +236,16 @@ public class FacturacionController {
         c.getCreatedAt(), c.getUpdatedAt());
   }
 
+  private TicketFacturaResponse toTicketFacturaResponse(com.portalfacturacion.domain.model.TicketFactura t) {
+    return new TicketFacturaResponse(t.getId(), t.getNumeroTicket(), t.getFechaEmision(), t.getHora(),
+        t.getSubtotal(), t.getIva(), t.getIsr(), t.getCedular(), t.getTotal());
+  }
+
   private FacturaResponse toFacturaResponse(Factura f) {
     return new FacturaResponse(f.getIdFactura(), f.getFolio(), f.getSerie(), f.getFecha(),
         f.getCliente(), f.getRfc(), f.getRazonSocial(), f.getNoTicket(),
         f.getSubtotal(), f.getImpuesto(), f.getIva(), f.getIsr(), f.getCedular(), f.getTotal(),
         f.getEstatus(), f.getUuid(), f.getFacturapiId(), f.getCancellationStatus(),
-        f.getCreatedAt(), f.getUpdatedAt(), f.getTickets());
+         f.getCreatedAt(), f.getUpdatedAt(), f.getTickets().stream().map(this::toTicketFacturaResponse).toList());
   }
 }
