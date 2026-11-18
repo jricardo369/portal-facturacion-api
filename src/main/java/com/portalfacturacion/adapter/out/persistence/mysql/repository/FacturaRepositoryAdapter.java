@@ -8,7 +8,9 @@ import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFact
 import com.portalfacturacion.application.port.in.usuario.PagedResult;
 import com.portalfacturacion.application.port.out.persistence.FacturaRepositoryPort;
 import com.portalfacturacion.domain.model.Factura;
+import com.portalfacturacion.domain.model.Ticket;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -124,6 +126,25 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
     }).toList();
     return new PagedResult<>(content, result.getNumber(), result.getSize(),
         result.getTotalElements(), result.getTotalPages());
+  }
+
+  @Override
+  public void guardarTicketsFactura(Long idFactura, List<Ticket> tickets) {
+    if (idFactura == null || tickets == null || tickets.isEmpty()) {
+      return;
+    }
+    for (Ticket ticket : tickets) {
+      TicketFacturaEntity entity = new TicketFacturaEntity();
+      entity.setIdFactura(idFactura);
+      entity.setNumeroTicket(ticket.getNumeroTicket());
+      entity.setFechaEmision(ticket.getFechaEmision());
+      entity.setSubtotal(ticket.getSubtotal() != null ? ticket.getSubtotal() : BigDecimal.ZERO);
+      entity.setIva(ticket.getIva() != null ? ticket.getIva() : BigDecimal.ZERO);
+      entity.setIsr(ticket.getIsr() != null ? ticket.getIsr() : BigDecimal.ZERO);
+      entity.setCedular(ticket.getCedular() != null ? ticket.getCedular() : BigDecimal.ZERO);
+      entity.setTotal(ticket.getTotal() != null ? ticket.getTotal() : BigDecimal.ZERO);
+      ticketFacturaJpaRepository.save(entity);
+    }
   }
 
   private Sort parseSort(String sort) {

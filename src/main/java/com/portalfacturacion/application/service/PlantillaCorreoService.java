@@ -76,6 +76,12 @@ public class PlantillaCorreoService {
       valores.putIfAbsent("logo", resolverLogo(plantilla, rutaLogo));
     }
 
+    String rutaTextoFactura = props.getRutaTextoFactura();
+    if (rutaTextoFactura == null || rutaTextoFactura.isBlank()) {
+      rutaTextoFactura = "http://localhost:18080/api/v1/images/texto_factura.png";
+    }
+    valores.putIfAbsent("texto_factura", rutaTextoFactura.trim());
+
     String resultado = plantilla;
     for (Map.Entry<String, String> entry : valores.entrySet()) {
       String valor = entry.getValue() != null ? entry.getValue() : "";

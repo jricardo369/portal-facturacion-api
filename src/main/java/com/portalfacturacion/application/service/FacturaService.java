@@ -9,7 +9,9 @@ import com.portalfacturacion.application.port.out.persistence.FacturaRepositoryP
 import com.portalfacturacion.domain.exception.FacturaDuplicadaException;
 import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
 import com.portalfacturacion.domain.model.Factura;
+import com.portalfacturacion.domain.model.Ticket;
 import java.math.BigDecimal;
+import java.util.List;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +57,11 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
     factura.setCreatedAt(Instant.now());
     factura.setUpdatedAt(Instant.now());
     return repository.save(factura);
+  }
+
+  @Transactional
+  public void guardarTicketsFactura(Long idFactura, List<Ticket> tickets) {
+    repository.guardarTicketsFactura(idFactura, tickets);
   }
 
   @Override

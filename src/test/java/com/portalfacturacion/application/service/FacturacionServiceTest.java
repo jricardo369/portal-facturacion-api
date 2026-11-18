@@ -13,8 +13,6 @@ import com.portalfacturacion.domain.model.Factura;
 import com.portalfacturacion.domain.model.FacturaTimbrada;
 import com.portalfacturacion.domain.model.ResultadoCancelacion;
 import com.portalfacturacion.domain.model.SolicitudTimbrado;
-import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
-import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
@@ -56,7 +54,7 @@ class FacturacionServiceTest {
     correo = mock(CorreoPort.class);
     facturapi = mock(FacturapiTimbradoPort.class);
     service = new FacturacionService(ticketService, clienteService, facturaService,
-        plantillas, correo, facturapi, new FacturapiProperties(), mock(TicketFacturaJpaRepository.class));
+        plantillas, correo, facturapi, new FacturapiProperties());
     when(plantillas.construirCorreo(anyString(), any(String[].class)))
         .thenReturn(new CorreoPreparado("remitente", "Oso", "asunto", "<html></html>"));
   }

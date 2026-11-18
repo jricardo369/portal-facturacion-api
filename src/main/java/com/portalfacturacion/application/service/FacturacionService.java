@@ -17,8 +17,6 @@ import com.portalfacturacion.domain.model.SolicitudTimbrado;
 import com.portalfacturacion.domain.model.Ticket;
 import com.portalfacturacion.domain.model.TicketItem;
 import com.portalfacturacion.domain.model.TicketPago;
-import com.portalfacturacion.adapter.out.persistence.mysql.entity.TicketFacturaEntity;
-import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import java.io.File;
 import java.io.IOException;
@@ -56,12 +54,11 @@ public class FacturacionService {
   private final CorreoPort correo;
   private final FacturapiTimbradoPort facturapi;
   private final FacturapiProperties propiedades;
-  private final TicketFacturaJpaRepository ticketFacturaJpaRepository;
 
   public FacturacionService(TicketService ticketService, ClienteService clienteService,
                               FacturaService facturaService, PlantillaCorreoService plantillas,
                               CorreoPort correo, FacturapiTimbradoPort facturapi,
-                              FacturapiProperties propiedades, TicketFacturaJpaRepository ticketFacturaJpaRepository) {
+                              FacturapiProperties propiedades) {
     this.ticketService = ticketService;
     this.clienteService = clienteService;
     this.facturaService = facturaService;
@@ -69,7 +66,6 @@ public class FacturacionService {
     this.correo = correo;
     this.facturapi = facturapi;
     this.propiedades = propiedades;
-    this.ticketFacturaJpaRepository = ticketFacturaJpaRepository;
   }
 
   public DatosFactura obtenerDatosFactura(String rfc, String numeroTicket) {
@@ -397,7 +393,7 @@ public class FacturacionService {
     Ticket ticketFacturable = ticketsValidos.size() == 1 ? ticketsValidos.get(0) : consolidarTickets(ticketsValidos);
     FacturaTimbrada timbrada = timbrar(ticketFacturable, cliente);
     Factura factura = crearFactura(ticketFacturable, cliente, ticketsValidos.get(0).getNumeroTicket().trim(), timbrada);
-    guardarTicketsFactura(ticketsValidos, factura);
+    facturaService.guardarTicketsFactura(factura.getIdFactura(), ticketsValidos);
     return factura;
   }
 
@@ -597,24 +593,6 @@ public class FacturacionService {
       }
     }
     return suma;
-  }
-
-  private void guardarTicketsFactura(List<Ticket> tickets, Factura factura) {
-    if (factura == null || factura.getIdFactura() == null) {
-      return;
-    }
-    for (Ticket ticket : tickets) {
-      TicketFacturaEntity entity = new TicketFacturaEntity();
-      entity.setIdFactura(factura.getIdFactura());
-      entity.setNumeroTicket(ticket.getNumeroTicket());
-      entity.setFechaEmision(ticket.getFechaEmision());
-      entity.setSubtotal(ticket.getSubtotal() != null ? ticket.getSubtotal() : BigDecimal.ZERO);
-      entity.setIva(ticket.getIva() != null ? ticket.getIva() : BigDecimal.ZERO);
-      entity.setIsr(ticket.getIsr() != null ? ticket.getIsr() : BigDecimal.ZERO);
-      entity.setCedular(ticket.getCedular() != null ? ticket.getCedular() : BigDecimal.ZERO);
-      entity.setTotal(ticket.getTotal() != null ? ticket.getTotal() : BigDecimal.ZERO);
-      ticketFacturaJpaRepository.save(entity);
-    }
   }
 
   private static final String RFC_PUBLICO_GENERAL = "XAXX010101000";
