@@ -1,4 +1,2 @@
-ALTER TABLE factura
-  ADD COLUMN IF NOT EXISTS iva DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  ADD COLUMN IF NOT EXISTS isr DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  ADD COLUMN IF NOT EXISTS cedular DECIMAL(12, 2) NOT NULL DEFAULT 0.00;
+-- Migracion sin cambios de esquema: las columnas iva/isr/cedular ya existen.
+SELECT 1;
