@@ -7,6 +7,11 @@ import com.portalfacturacion.application.port.out.notification.CorreoPort;
 import com.portalfacturacion.domain.exception.FacturaNoEncontradaException;
 import com.portalfacturacion.domain.model.Factura;
 import java.io.File;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -47,13 +52,18 @@ public class EnvioFacturaService implements EnviarFacturaUseCase {
   }
 
   @Override
-  public CorreoPreparado reenviarFactura(String correoElectronico, String numeroTicket) {
+  public CorreoPreparado reenviarFactura(String correoElectronico, String numeroTicket,
+      String fecha, BigDecimal total) {
     Factura factura = facturaRepo.findByNoTicket(numeroTicket)
         .orElseThrow(() -> {
-          log.warn("No se reenvia correo: la factura con el folio proporcionado no fue encontrada: {}", numeroTicket);
+          log.warn("No se reenvia correo: la factura con los datos proporcionados no fue encontrada: {}", numeroTicket);
           return new FacturaNoEncontradaException(
-            "La factura con el folio proporcionado no fue encontrada");
+            "Factura no encontrada con los datos ingresados");
         });
+    if (!coincide(factura, fecha, total)) {
+      log.warn("No se reenvia correo: la factura no coincide con los datos proporcionados: {}", numeroTicket);
+      throw new FacturaNoEncontradaException("Factura no encontrada con los datos ingresados");
+    }
     // El correo solo se envia si la factura fue encontrada.
     CorreoPreparado preparado = construirCorreo(factura);
     enviar(correoElectronico, preparado, factura);
@@ -93,6 +103,40 @@ public class EnvioFacturaService implements EnviarFacturaUseCase {
     agregarAdjunto(adjuntos, base + ".pdf",
         () -> facturapi.obtenerPdf(factura.getFacturapiId()));
     return adjuntos;
+  }
+
+  private boolean coincide(Factura factura, String fecha, BigDecimal total) {
+    if (fecha != null && !fecha.isBlank()) {
+      LocalDate esperada;
+      try {
+        esperada = LocalDate.parse(fecha.trim());
+      } catch (DateTimeParseException ex) {
+        try {
+          esperada = Instant.parse(fecha.trim()).atZone(ZoneId.of("America/Mexico_City")).toLocalDate();
+        } catch (DateTimeParseException ex2) {
+          return false;
+        }
+      }
+      Instant referencia = factura.getFecha();
+      if (referencia != null) {
+        LocalDate fechaFactura = referencia.atZone(ZoneId.of("America/Mexico_City")).toLocalDate();
+        LocalDate fechaUtc = referencia.atZone(ZoneId.of("UTC")).toLocalDate();
+        if (!fechaFactura.equals(esperada) && !fechaUtc.equals(esperada)) {
+          return false;
+        }
+      }
+    }
+    if (total != null) {
+      BigDecimal totalFactura = factura.getTotal();
+      if (totalFactura == null) {
+        return false;
+      }
+      BigDecimal diferencia = totalFactura.subtract(total).abs();
+      if (diferencia.compareTo(new BigDecimal("0.01")) > 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private void agregarAdjunto(List<File> adjuntos, String nombre, java.util.function.Supplier<byte[]> contenido) {

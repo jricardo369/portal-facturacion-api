@@ -114,7 +114,7 @@ public class FacturacionService {
     if (!fechaTicket.equals(esperada)
         && !referencia.atZone(ZoneId.of("UTC")).toLocalDate().equals(esperada)) {
       throw new TicketNoEncontradoException(
-          "No se encontró el ticket con la fecha capturada");
+          "No se encontró el ticket con la información capturada");
     }
   }
 

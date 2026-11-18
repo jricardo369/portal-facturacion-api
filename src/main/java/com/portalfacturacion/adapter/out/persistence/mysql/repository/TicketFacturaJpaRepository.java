@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TicketFacturaJpaRepository extends JpaRepository<TicketFacturaEntity, Long> {
   List<TicketFacturaEntity> findByIdFactura(Long idFactura);
+
+  List<TicketFacturaEntity> findByNumeroTicket(String numeroTicket);
 }

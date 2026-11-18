@@ -58,7 +58,28 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
 
   @Override
   public Optional<Factura> findByNoTicket(String noTicket) {
-    return jpa.findFirstByNoTicketAndEstatusOrderByCreatedAtDesc(noTicket, "Cargada").map(FacturaMapper::toDomain);
+    Optional<FacturaEntity> directa =
+        jpa.findFirstByNoTicketAndEstatusOrderByCreatedAtDesc(noTicket, "Cargada");
+    if (directa.isPresent()) {
+      return directa.map(FacturaMapper::toDomain);
+    }
+    List<TicketFacturaEntity> tickets =
+        ticketFacturaJpaRepository.findByNumeroTicket(noTicket);
+    if (tickets.isEmpty()) {
+      return Optional.empty();
+    }
+    List<Long> ids = tickets.stream()
+        .map(TicketFacturaEntity::getIdFactura).distinct().toList();
+    List<FacturaEntity> facturas = jpa.findAllById(ids).stream()
+        .filter(e -> "Cargada".equals(e.getEstatus())).toList();
+    if (facturas.isEmpty()) {
+      return Optional.empty();
+    }
+    FacturaEntity elegida = facturas.stream()
+        .max(java.util.Comparator.comparing(FacturaEntity::getCreatedAt,
+            java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+        .orElse(facturas.get(0));
+    return Optional.of(FacturaMapper.toDomain(elegida));
   }
 
   @Override

@@ -34,7 +34,7 @@ public class EnvioFacturaController {
   public ResponseEntity<EnvioFacturaResponse> reenviar(
       @Valid @RequestBody ReenviarFacturaRequest request) {
     CorreoPreparado enviado = useCase.reenviarFactura(
-        request.correoElectronico(), request.numeroTicket());
+        request.correoElectronico(), request.numeroTicket(), request.fecha(), request.total());
     return ResponseEntity.accepted().body(
         new EnvioFacturaResponse(
           "Correo reenviado correctamente a " + request.correoElectronico(),
