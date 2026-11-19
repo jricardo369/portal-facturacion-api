@@ -36,9 +36,6 @@ public class FacturaEntity {
   @Column(name = "razon_social", nullable = false, length = 255)
   private String razonSocial;
 
-  @Column(name = "no_ticket", nullable = false, length = 30)
-  private String noTicket;
-
   @Column(name = "subtotal", nullable = false, precision = 12, scale = 2)
   private BigDecimal subtotal;
 
@@ -89,8 +86,6 @@ public class FacturaEntity {
   public void setRfc(String rfc) { this.rfc = rfc; }
   public String getRazonSocial() { return razonSocial; }
   public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
-  public String getNoTicket() { return noTicket; }
-  public void setNoTicket(String noTicket) { this.noTicket = noTicket; }
   public BigDecimal getSubtotal() { return subtotal; }
   public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
   public BigDecimal getImpuesto() { return impuesto; }

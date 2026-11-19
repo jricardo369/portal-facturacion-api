@@ -96,8 +96,9 @@ public class EnvioFacturaService implements EnviarFacturaUseCase {
           factura.getUuid());
       return adjuntos;
     }
+    String noTicket = factura.getTickets().isEmpty() ? "" : factura.getTickets().get(0).getNumeroTicket();
     String base = factura.getUuid() != null && !factura.getUuid().isBlank()
-        ? factura.getUuid() : factura.getNoTicket();
+        ? factura.getUuid() : noTicket;
     agregarAdjunto(adjuntos, base + ".xml",
         () -> facturapi.obtenerXml(factura.getFacturapiId()));
     agregarAdjunto(adjuntos, base + ".pdf",

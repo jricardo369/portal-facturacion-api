@@ -19,15 +19,21 @@ public class PlantillaCorreoService {
 
   private final CorreoProperties props;
   private final LogoProvider logos;
+  private final HeaderCorreoProvider header;
 
   public PlantillaCorreoService(CorreoProperties props) {
-    this(props, new LogoProvider(props));
+    this(props, new LogoProvider(props), new HeaderCorreoProvider(props));
+  }
+
+  public PlantillaCorreoService(CorreoProperties props, LogoProvider logos) {
+    this(props, logos, new HeaderCorreoProvider(props));
   }
 
   @Autowired
-  public PlantillaCorreoService(CorreoProperties props, LogoProvider logos) {
+  public PlantillaCorreoService(CorreoProperties props, LogoProvider logos, HeaderCorreoProvider header) {
     this.props = props;
     this.logos = logos;
+    this.header = header;
   }
 
   public CorreoPreparado construirCorreo(String nombreLayout, String... parametros) {
@@ -74,6 +80,12 @@ public class PlantillaCorreoService {
       valores.putIfAbsent("logo", "cid:" + LogoProvider.CID);
     } else {
       valores.putIfAbsent("logo", resolverLogo(plantilla, rutaLogo));
+    }
+
+    if (props.isLogoInline() && header.disponible()) {
+      valores.putIfAbsent("header", "cid:" + HeaderCorreoProvider.CID);
+    } else {
+      valores.putIfAbsent("header", "");
     }
 
     String rutaTextoFactura = props.getRutaTextoFactura();

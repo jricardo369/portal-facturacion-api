@@ -243,7 +243,8 @@ public class FacturacionController {
 
   private FacturaResponse toFacturaResponse(Factura f) {
     return new FacturaResponse(f.getIdFactura(), f.getFolio(), f.getSerie(), f.getFecha(),
-        f.getCliente(), f.getRfc(), f.getRazonSocial(), f.getNoTicket(),
+        f.getCliente(), f.getRfc(), f.getRazonSocial(),
+        f.getTickets().stream().map(t -> t.getNumeroTicket()).distinct().collect(java.util.stream.Collectors.joining(", ")),
         f.getSubtotal(), f.getImpuesto(), f.getIva(), f.getIsr(), f.getCedular(), f.getTotal(),
         f.getEstatus(), f.getUuid(), f.getFacturapiId(), f.getCancellationStatus(),
          f.getCreatedAt(), f.getUpdatedAt(), f.getTickets().stream().map(this::toTicketFacturaResponse).toList());

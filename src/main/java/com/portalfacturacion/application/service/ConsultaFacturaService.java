@@ -15,8 +15,8 @@ public class ConsultaFacturaService {
     this.consultarFacturaUseCase = consultarFacturaUseCase;
   }
 
-  public PagedResult<Factura> getFacturas(Instant desde, Instant hasta, String noTicket,
-      int page, int size, String sort) {
-    return consultarFacturaUseCase.listar(desde, hasta, noTicket, page, size, sort);
+  public PagedResult<Factura> getFacturas(Instant desde, Instant hasta, String noTicket, String cliente, String rfc,
+      String estatus, String uuid, Instant createdAt, java.math.BigDecimal total, int page, int size, String sort) {
+    return consultarFacturaUseCase.listar(desde, hasta, noTicket, cliente, rfc, estatus, uuid, createdAt, total, page, size, sort);
   }
 }

@@ -15,6 +15,7 @@ public interface FacturaRepositoryPort {
   boolean existsBySerieAndFolio(String serie, String folio);
   Optional<Factura> findByNoTicket(String noTicket);
   boolean existsByNoTicket(String noTicket);
-  PagedResult<Factura> findConFiltros(Instant desde, Instant hasta, String noTicket, int page, int size, String sort);
+  PagedResult<Factura> findConFiltros(Instant desde, Instant hasta, String noTicket, String cliente, String rfc,
+      String estatus, String uuid, Instant createdAt, java.math.BigDecimal total, int page, int size, String sort);
   void guardarTicketsFactura(Long idFactura, List<Ticket> tickets);
 }

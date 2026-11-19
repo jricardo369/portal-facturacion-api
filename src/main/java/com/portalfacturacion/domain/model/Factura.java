@@ -12,7 +12,6 @@ public class Factura {
   private String cliente;
   private String rfc;
   private String razonSocial;
-  private String noTicket;
   private BigDecimal subtotal;
   private BigDecimal impuesto;
   private BigDecimal iva;
@@ -31,7 +30,7 @@ public class Factura {
   }
 
   public Factura(Long idFactura, String folio, String serie, Instant fecha,
-                 String cliente, String rfc, String razonSocial, String noTicket,
+                 String cliente, String rfc, String razonSocial,
                  BigDecimal subtotal, BigDecimal impuesto, BigDecimal total,
                  String estatus, String uuid, String facturapiId, String cancellationStatus,
                  Instant createdAt, Instant updatedAt) {
@@ -42,7 +41,6 @@ public class Factura {
     this.cliente = cliente;
     this.rfc = rfc;
     this.razonSocial = razonSocial;
-    this.noTicket = noTicket;
     this.subtotal = subtotal;
     this.impuesto = impuesto;
     this.total = total;
@@ -68,8 +66,6 @@ public class Factura {
   public void setRfc(String rfc) { this.rfc = rfc; }
   public String getRazonSocial() { return razonSocial; }
   public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
-  public String getNoTicket() { return noTicket; }
-  public void setNoTicket(String noTicket) { this.noTicket = noTicket; }
   public BigDecimal getSubtotal() { return subtotal; }
   public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
   public BigDecimal getImpuesto() { return impuesto; }

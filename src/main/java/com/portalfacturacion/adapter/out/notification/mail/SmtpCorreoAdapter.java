@@ -1,6 +1,7 @@
 package com.portalfacturacion.adapter.out.notification.mail;
 
 import com.portalfacturacion.application.port.out.notification.CorreoPort;
+import com.portalfacturacion.application.service.HeaderCorreoProvider;
 import com.portalfacturacion.application.service.LogoProvider;
 
 import com.portalfacturacion.configuration.CorreoProperties;
@@ -27,16 +28,22 @@ public class SmtpCorreoAdapter implements CorreoPort {
   private final JavaMailSender mailSender;
   private final CorreoProperties props;
   private final LogoProvider logos;
+  private final HeaderCorreoProvider header;
 
   public SmtpCorreoAdapter(JavaMailSender mailSender, CorreoProperties props) {
-    this(mailSender, props, new LogoProvider(props));
+    this(mailSender, props, new LogoProvider(props), new HeaderCorreoProvider(props));
+  }
+
+  public SmtpCorreoAdapter(JavaMailSender mailSender, CorreoProperties props, LogoProvider logos) {
+    this(mailSender, props, logos, new HeaderCorreoProvider(props));
   }
 
   @Autowired
-  public SmtpCorreoAdapter(JavaMailSender mailSender, CorreoProperties props, LogoProvider logos) {
+  public SmtpCorreoAdapter(JavaMailSender mailSender, CorreoProperties props, LogoProvider logos, HeaderCorreoProvider header) {
     this.mailSender = mailSender;
     this.props = props;
     this.logos = logos;
+    this.header = header;
   }
 
   @Async("correoExecutor")
@@ -77,7 +84,8 @@ public class SmtpCorreoAdapter implements CorreoPort {
     message.setSubject(asunto != null ? asunto : "", "UTF-8");
 
     byte[] logo = logoInline(contenido);
-    if (logo != null) {
+    byte[] headerImg = headerInline(contenido);
+    if (logo != null || headerImg != null) {
       MimeMultipart mixed = new MimeMultipart("mixed");
       MimeMultipart related = new MimeMultipart("related");
 
@@ -90,6 +98,13 @@ public class SmtpCorreoAdapter implements CorreoPort {
         imagen.setContent(logo, logos.contentType());
         imagen.setHeader("Content-Disposition", "inline; filename=\"logo.png\"");
         imagen.setHeader("Content-ID", "<" + LogoProvider.CID + ">");
+        related.addBodyPart(imagen);
+      }
+      if (headerImg != null) {
+        MimeBodyPart imagen = new MimeBodyPart();
+        imagen.setContent(headerImg, header.contentType());
+        imagen.setHeader("Content-Disposition", "inline; filename=\"headerCorreo.png\"");
+        imagen.setHeader("Content-ID", "<" + HeaderCorreoProvider.CID + ">");
         related.addBodyPart(imagen);
       }
 
@@ -133,6 +148,18 @@ public class SmtpCorreoAdapter implements CorreoPort {
     byte[] data = logos.bytes();
     if (data == null || data.length == 0) {
       log.warn("El layout referencia el logo embebido (cid) pero no se pudo cargar la imagen");
+      return null;
+    }
+    return data;
+  }
+
+  private byte[] headerInline(String contenido) {
+    if (!props.isLogoInline() || contenido == null || !contenido.contains("cid:" + HeaderCorreoProvider.CID)) {
+      return null;
+    }
+    byte[] data = header.bytes();
+    if (data == null || data.length == 0) {
+      log.warn("El layout referencia el header embebido (cid) pero no se pudo cargar la imagen");
       return null;
     }
     return data;

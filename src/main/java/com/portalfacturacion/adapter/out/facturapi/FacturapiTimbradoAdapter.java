@@ -96,7 +96,7 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
   Map<String, Object> construirCuerpo(SolicitudTimbrado s) {
     Map<String, Object> cliente = new HashMap<>();
     cliente.put("legal_name", s.getRazonSocial());
-    cliente.put("tax_id", s.getRfc());
+    cliente.put("tax_id", s.getRfc() == null ? null : s.getRfc().trim().toUpperCase(java.util.Locale.ROOT));
     cliente.put("tax_system", s.getRegimenFiscal());
     if (s.getCorreo() != null && !s.getCorreo().isBlank()) {
       cliente.put("email", s.getCorreo().trim());

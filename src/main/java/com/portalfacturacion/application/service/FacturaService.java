@@ -97,11 +97,12 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
 
   @Override
   @Transactional(readOnly = true)
-  public PagedResult<Factura> listar(Instant desde, Instant hasta, String noTicket,
-                                     int page, int size, String sort) {
+public PagedResult<Factura> listar(Instant desde, Instant hasta, String noTicket, String cliente, String rfc,
+                                      String estatus, String uuid, Instant createdAt, java.math.BigDecimal total,
+                                      int page, int size, String sort) {
     int safePage = Math.max(page, 0);
     int safeSize = Math.min(Math.max(size, 1), 100);
-    return repository.findConFiltros(desde, hasta, noTicket, safePage, safeSize, sort);
+    return repository.findConFiltros(desde, hasta, noTicket, cliente, rfc, estatus, uuid, createdAt, total, safePage, safeSize, sort);
   }
 
   @Transactional(readOnly = true)
@@ -139,7 +140,6 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
     actual.setCliente(cambios.getCliente());
     actual.setRfc(cambios.getRfc().trim().toUpperCase());
     actual.setRazonSocial(cambios.getRazonSocial());
-    actual.setNoTicket(cambios.getNoTicket());
     actual.setSubtotal(cambios.getSubtotal() == null ? BigDecimal.ZERO : cambios.getSubtotal());
     actual.setImpuesto(cambios.getImpuesto() == null ? BigDecimal.ZERO : cambios.getImpuesto());
     actual.setTotal(cambios.getTotal() == null ? BigDecimal.ZERO : cambios.getTotal());
@@ -170,9 +170,6 @@ public class FacturaService implements CrearFacturaUseCase, ConsultarFacturaUseC
     }
     if (factura.getRazonSocial() == null || factura.getRazonSocial().isBlank()) {
       throw new IllegalArgumentException("La razon social es obligatoria");
-    }
-    if (factura.getNoTicket() == null || factura.getNoTicket().isBlank()) {
-      throw new IllegalArgumentException("El numero de ticket es obligatorio");
     }
   }
 

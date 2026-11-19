@@ -60,11 +60,6 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
 
   @Override
   public Optional<Factura> findByNoTicket(String noTicket) {
-    Optional<FacturaEntity> directa =
-        jpa.findFirstByNoTicketAndEstatusOrderByCreatedAtDesc(noTicket, "Cargada");
-    if (directa.isPresent()) {
-      return directa.map(FacturaMapper::toDomain);
-    }
     List<TicketFacturaEntity> tickets =
         ticketFacturaJpaRepository.findByNumeroTicket(noTicket);
     if (tickets.isEmpty()) {
@@ -86,12 +81,18 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
 
   @Override
   public boolean existsByNoTicket(String noTicket) {
-    return jpa.existsByNoTicketAndEstatus(noTicket, "Cargada");
+    List<TicketFacturaEntity> tickets = ticketFacturaJpaRepository.findByNumeroTicket(noTicket);
+    if (tickets.isEmpty()) {
+      return false;
+    }
+    List<Long> ids = tickets.stream().map(TicketFacturaEntity::getIdFactura).distinct().toList();
+    return jpa.existsByIdFacturaInAndEstatus(ids, "Cargada");
   }
 
   @Override
-  public PagedResult<Factura> findConFiltros(Instant desde, Instant hasta, String noTicket,
-                                             int page, int size, String sort) {
+public PagedResult<Factura> findConFiltros(Instant desde, Instant hasta, String noTicket, String cliente, String rfc,
+                                              String estatus, String uuid, Instant createdAt, java.math.BigDecimal total,
+                                              int page, int size, String sort) {
     PageRequest pageable = PageRequest.of(page, size, parseSort(sort));
     Page<FacturaEntity> result = jpa.findAll((root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
@@ -102,7 +103,29 @@ public class FacturaRepositoryAdapter implements FacturaRepositoryPort {
         predicates.add(cb.lessThanOrEqualTo(root.get("fecha"), hasta));
       }
       if (noTicket != null && !noTicket.isBlank()) {
-        predicates.add(cb.equal(root.get("noTicket"), noTicket.trim()));
+        jakarta.persistence.criteria.Subquery<Long> sq = query.subquery(Long.class);
+        jakarta.persistence.criteria.Root<TicketFacturaEntity> tf = sq.from(TicketFacturaEntity.class);
+        sq.select(tf.get("idFactura"));
+        sq.where(cb.equal(tf.get("numeroTicket"), noTicket.trim()));
+        predicates.add(root.get("idFactura").in(sq));
+      }
+      if (cliente != null && !cliente.isBlank()) {
+        predicates.add(cb.like(cb.lower(root.get("cliente")), "%" + cliente.trim().toLowerCase() + "%"));
+      }
+      if (rfc != null && !rfc.isBlank()) {
+        predicates.add(cb.equal(cb.upper(root.get("rfc")), rfc.trim().toUpperCase()));
+      }
+      if (estatus != null && !estatus.isBlank()) {
+        predicates.add(cb.equal(cb.upper(root.get("estatus")), estatus.trim().toUpperCase()));
+      }
+      if (uuid != null && !uuid.isBlank()) {
+        predicates.add(cb.like(cb.lower(root.get("uuid")), "%" + uuid.trim().toLowerCase() + "%"));
+      }
+      if (createdAt != null) {
+        predicates.add(cb.equal(root.get("createdAt"), createdAt));
+      }
+      if (total != null) {
+        predicates.add(cb.equal(root.get("total"), total));
       }
       return cb.and(predicates.toArray(new Predicate[0]));
     }, pageable);

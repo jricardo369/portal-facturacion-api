@@ -297,7 +297,7 @@ class FacturacionServiceTest {
     previa.setSerie("A");
     previa.setRfc("AAAA111111AAA");
     previa.setRazonSocial("Empresa X SA");
-    previa.setNoTicket("T-1");
+
     previa.setUuid("uuid-0");
     previa.setFacturapiId("fp1");
     previa.setEstatus("Cargada");
@@ -331,7 +331,7 @@ class FacturacionServiceTest {
     previa.setFolio("T-1");
     previa.setRfc("AAAA111111AAA");
     previa.setRazonSocial("Empresa X SA");
-    previa.setNoTicket("T-1");
+
     previa.setEstatus("Cargada");
     when(facturaService.obtenerPorNoTicket("T-1")).thenReturn(previa);
     stubCrearFactura();
@@ -417,7 +417,7 @@ class FacturacionServiceTest {
     factura.setEstatus("Cargada");
     factura.setRfc("AAAA111111AAA");
     factura.setRazonSocial("Empresa X SA");
-    factura.setNoTicket("T-1");
+
     when(facturaService.obtenerPorUuid("uuid-1")).thenReturn(factura);
     when(facturapi.cancelar("fp1", "02", null)).thenReturn(cancelacionAceptada());
     when(facturaService.actualizarPorId(any(), any(Factura.class)))

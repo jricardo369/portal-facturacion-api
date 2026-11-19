@@ -47,7 +47,7 @@ class EnvioFacturaServiceTest {
     Factura f = new Factura();
     f.setIdFactura(1L);
     f.setFolio("100");
-    f.setNoTicket("T-1");
+
     f.setUuid("uuid-1");
     f.setFacturapiId("fp1");
     f.setTotal(new BigDecimal("1160.00"));

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no">
+    <title>Tu factura | oso despierto</title>
+    <style>
+        /* Fuentes email-safe: si el cliente no tiene la fuente de marca se usa la
+           siguiente de la lista. Centuries Gothic/Trebuchet/Segoe/Tahoma/Verdana/
+           Roboto/Arial son las que ya existen en Windows, Mac, iOS, Android y Office. */
+        .font-title { font-family: 'Comfortaa', 'Century Gothic', 'Trebuchet MS', 'Segoe UI', Tahoma, Verdana, Roboto, Arial, sans-serif; }
+        .font-text { font-family: 'Nunito', 'Segoe UI', 'Trebuchet MS', Tahoma, Verdana, Roboto, Arial, sans-serif; }
+        @media only screen and (max-width: 620px) {
+            .body-pad { padding: 26px 18px 28px !important; }
+            .head-pad { padding: 18px 18px !important; }
+            .h1 { font-size: 23px !important; line-height: 29px !important; }
+            .brand-name { font-size: 16px !important; letter-spacing: 1px !important; }
+            .alert-icon-cell { padding-left: 14px !important; width: 46px !important; }
+            .alert-text { padding: 14px 16px 15px 8px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Nunito', 'Segoe UI', 'Trebuchet MS', Tahoma, Verdana, Roboto, Arial, sans-serif; color: #302A2B; -webkit-text-size-adjust: 100%;">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+        Tu factura de Oso Despierto está lista. Encontrarás los archivos XML y PDF adjuntos.
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FFFFFF" style="width: 100%; background-color: #FFFFFF;">
+        <tr>
+            <td align="center" style="padding: 32px 14px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; background-color: #ffffff;">
+                    <tr>
+                        <td bgcolor="#ffffff" class="head-pad" style="">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td valign="middle" style="font-size: 0; line-height: 0;">
+                                        <img src="${header}" width="100%" alt="Oso Despierto" style="display: block; width: 100%; height: auto; border: 0;">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="body-pad" style="padding: 28px 0px 36px 0px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; background-color: #EAF4F0; border: 1px solid #C8E3D8; border-radius: 14px; margin: 0 0 24px;">
+                                <tr>
+                                    <td style="padding: 14px 18px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td valign="middle" style="padding-right: 12px;">
+                                                    <span style="display: inline-block; width: 30px; height: 30px; line-height: 30px; text-align: center; background-color: #235451; color: #FFFFFF; border-radius: 999px; font-size: 16px; font-weight: 700;">✓</span>
+                                                </td>
+                                                <td valign="middle">
+                                                    <span style="display: block; font-size: 16px; line-height: 22px; color: #1F4A47; font-weight: 700;">¡Gracias por tu compra!</span>
+                                                    <span style="display: block; font-size: 13px; line-height: 18px; color: #4A7A76;">Tu factura se generó correctamente.</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; background-color: #FFFFFF; border: 1px solid #E6E1DC; border-radius: 16px; box-shadow: 0 2px 8px rgba(34,28,30,.06);">
+                                <tr>
+                                    <td bgcolor="#FFFFFF" valign="middle" style="padding: 14px 24px; border-bottom: 1px solid #E6E1DC; background-color: #FFFFFF; vertical-align: middle; border-radius: 16px 16px 0 0;">
+                                        <span style="display: block; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #221C1E;">Resumen de la factura</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 14px 24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="display: block; font-size: 11px; line-height: 15px; color: #8A8384; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;">Cliente</span>
+                                                    <span style="display: block; margin-top: 2px; font-size: 15px; line-height: 21px; color: #221C1E; font-weight: 600;">${cliente}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; border-top: 1px solid #F0ECE8;">
+                                                    <span style="display: block; font-size: 11px; line-height: 15px; color: #8A8384; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;">Folio</span>
+                                                    <span style="display: block; margin-top: 2px; font-size: 15px; line-height: 21px; color: #221C1E; font-weight: 600;">${folio}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 12px 0 8px; border-top: 1px solid #F0ECE8;">
+                                                    <span style="display: block; font-size: 11px; line-height: 15px; color: #8A8384; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;">Total</span>
+                                                    <span style="display: block; margin-top: 2px; font-size: 24px; line-height: 30px; color: #235451; font-weight: 700;">$${total} MXN</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-top: 26px;">
+                                <tr>
+                                    <td style="padding-bottom: 12px;">
+                                        <span style="display: block; font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #235451;">Archivos adjuntos</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; background-color: #FFFFFF; border: 1px solid #E8E4E0; border-radius: 14px;">
+                                            <tr>
+                                                <td width="74" valign="middle" style="width: 74px; padding: 14px 0 14px 16px;">
+                                                    <span style="display: inline-block; background-color: #235451; color: #FFFFFF; border-radius: 999px; padding: 6px 10px; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em;">XML</span>
+                                                </td>
+                                                <td valign="middle" style="padding: 14px 16px 14px 8px;">
+                                                    <p style="margin: 0; color: #221C1E; font-size: 14px; line-height: 20px; font-weight: 700;">Comprobante fiscal timbrado ante el SAT</p>
+                                                    <p style="margin: 3px 0 0; color: #6B6465; font-size: 13px; line-height: 19px;">Archivo .xml con la información fiscal de tu compra.</p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td width="74" valign="middle" style="width: 74px; padding: 14px 0 14px 16px; border-top: 1px solid #F0ECE8;">
+                                                    <span style="display: inline-block; background-color: #f1805c; color: #FFFFFF; border-radius: 999px; padding: 6px 10px; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em;">PDF</span>
+                                                </td>
+                                                <td valign="middle" style="padding: 14px 16px 14px 8px; border-top: 1px solid #F0ECE8;">
+                                                    <p style="margin: 0; color: #221C1E; font-size: 14px; line-height: 20px; font-weight: 700;">Representación impresa de tu comprobante</p>
+                                                    <p style="margin: 3px 0 0; color: #6B6465; font-size: 13px; line-height: 19px;">Archivo .pdf listo para imprimir o compartir.</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <p style="margin: 14px 0 0; color: #6B6465; font-size: 13px; line-height: 20px;">Te recomendamos conservar ambos archivos para tus registros. El XML y el PDF llegan como adjuntos separados en este correo.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#221C1E" class="head-pad" style="padding: 20px 28px; background-color: #221C1E; text-align: center;">
+                            <p style="margin: 0; color: #ffffff; font-size: 12px; line-height: 19px;">Este correo fue enviado automáticamente. Por favor, no respondas a este mensaje.</p>
+                            <p class="font-title" style="margin: 8px 0 0; color: #F29799; font-size: 11.5px; line-height: 17px; font-family: 'Comfortaa', 'Century Gothic', 'Trebuchet MS', 'Segoe UI', Tahoma, Verdana, Roboto, Arial, sans-serif;">© 2026 oso despierto. Todos los derechos reservados.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

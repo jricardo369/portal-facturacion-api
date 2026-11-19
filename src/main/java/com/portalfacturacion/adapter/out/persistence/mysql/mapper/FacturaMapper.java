@@ -13,7 +13,7 @@ public final class FacturaMapper {
       return null;
     }
     Factura f = new Factura(e.getIdFactura(), e.getFolio(), e.getSerie(), e.getFecha(),
-        e.getCliente(), e.getRfc(), e.getRazonSocial(), e.getNoTicket(),
+        e.getCliente(), e.getRfc(), e.getRazonSocial(),
         e.getSubtotal(), e.getImpuesto(), e.getTotal(),
         e.getEstatus(), e.getUuid(), e.getFacturapiId(), e.getCancellationStatus(),
         e.getCreatedAt(), e.getUpdatedAt());
@@ -32,7 +32,6 @@ public final class FacturaMapper {
     e.setCliente(d.getCliente());
     e.setRfc(d.getRfc());
     e.setRazonSocial(d.getRazonSocial());
-    e.setNoTicket(d.getNoTicket());
     e.setSubtotal(d.getSubtotal() == null ? java.math.BigDecimal.ZERO : d.getSubtotal());
     e.setImpuesto(d.getImpuesto() == null ? java.math.BigDecimal.ZERO : d.getImpuesto());
     e.setIva(d.getIva() == null ? java.math.BigDecimal.ZERO : d.getIva());

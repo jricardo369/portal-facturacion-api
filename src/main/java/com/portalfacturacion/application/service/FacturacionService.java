@@ -183,7 +183,8 @@ public class FacturacionService {
     if (factura == null) {
       return null;
     }
-    return new Ticket(factura.getNoTicket(), factura.getTotal(), factura.getSubtotal(),
+    String noTicket = factura.getTickets().isEmpty() ? "" : factura.getTickets().get(0).getNumeroTicket();
+    return new Ticket(noTicket, factura.getTotal(), factura.getSubtotal(),
         factura.getImpuesto(), factura.getEstatus(), null,
         factura.getFecha(), factura.getFecha(), factura.getCliente(), null, null,
         false, List.of(), List.of());
@@ -689,7 +690,6 @@ public class FacturacionService {
     factura.setCliente(cliente.getRazonSocial());
     factura.setRfc(cliente.getRfc());
     factura.setRazonSocial(cliente.getRazonSocial());
-    factura.setNoTicket(noTicket);
     factura.setSubtotal(timbrada.getSubtotal() != null ? timbrada.getSubtotal() : ticket.getSubtotal());
     factura.setImpuesto(timbrada.getImpuesto() != null ? timbrada.getImpuesto() : ticket.getImpuestos());
     factura.setIva(ticket.getIva());
