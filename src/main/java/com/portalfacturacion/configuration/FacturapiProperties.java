@@ -14,6 +14,8 @@ public class FacturapiProperties {
   private String paymentForm = "01";
   private String paymentMethod = "PUE";
   private String productKey = "90101500";
+  private String unitKey = "E48";
+  private String unitName = "Unidad de servicio";
   private String motivoCancelacion = "02";
   private String publicoGeneralPeriodicity = "day";
 
@@ -31,6 +33,10 @@ public class FacturapiProperties {
   public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
   public String getProductKey() { return productKey; }
   public void setProductKey(String productKey) { this.productKey = productKey; }
+  public String getUnitKey() { return unitKey; }
+  public void setUnitKey(String unitKey) { this.unitKey = unitKey; }
+  public String getUnitName() { return unitName; }
+  public void setUnitName(String unitName) { this.unitName = unitName; }
   public String getMotivoCancelacion() { return motivoCancelacion; }
   public void setMotivoCancelacion(String motivoCancelacion) { this.motivoCancelacion = motivoCancelacion; }
   public String getPublicoGeneralPeriodicity() { return publicoGeneralPeriodicity; }

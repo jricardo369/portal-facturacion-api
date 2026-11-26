@@ -36,6 +36,8 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       new com.fasterxml.jackson.databind.ObjectMapper();
   private static final BigDecimal TASA_IVA = new BigDecimal("0.16");
   private static final BigDecimal TASA_ISR = new BigDecimal("0.0125");
+  private static final String EXPORTACION_NO_APLICA = "01";
+  private static final String PDF_EXPORTACION_NO_APLICA = "<p>Exportación: No aplica</p>";
 
   private final FacturapiProperties properties;
   private final RestClient restClient;
@@ -111,6 +113,8 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
         Map<String, Object> producto = new HashMap<>();
         producto.put("description", item.getDescripcion());
         producto.put("product_key", item.getClave());
+        producto.put("unit_key", properties.getUnitKey());
+        producto.put("unit_name", properties.getUnitName());
         producto.put("price", item.getPrecio());
         producto.put("tax_included", s.isPrecioConImpuestos());
         if (item.getIva() != null || item.getIsr() != null) {
@@ -131,6 +135,9 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
     }
     cuerpo.put("payment_form", s.getFormaPago());
     cuerpo.put("payment_method", s.getMetodoPago());
+    cuerpo.put("export", EXPORTACION_NO_APLICA);
+    cuerpo.put("pdf_options", Map.of("export_key", false));
+    cuerpo.put("pdf_custom_section", PDF_EXPORTACION_NO_APLICA);
     if (s.isPublicoGeneral()) {
       Map<String, Object> global = new HashMap<>();
       global.put("periodicity", s.getPeriodoPeriodicity());

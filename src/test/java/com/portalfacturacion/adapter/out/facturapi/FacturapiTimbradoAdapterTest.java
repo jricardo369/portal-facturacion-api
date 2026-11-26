@@ -179,6 +179,10 @@ class FacturapiTimbradoAdapterTest {
 
     List<Map<String, Object>> items = (List<Map<String, Object>>) cuerpo.get("items");
     Map<String, Object> product = (Map<String, Object>) items.get(0).get("product");
+    assertThat(product)
+        .containsEntry("product_key", "90101500")
+        .containsEntry("unit_key", "E48")
+        .containsEntry("unit_name", "Unidad de servicio");
     List<Map<String, Object>> taxes = (List<Map<String, Object>>) product.get("taxes");
     assertThat(taxes).hasSize(2);
     assertThat(taxes.get(0))
@@ -271,5 +275,23 @@ class FacturapiTimbradoAdapterTest {
     Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
 
     assertThat(cuerpo).doesNotContainKey("related_documents");
+  }
+
+  @Test
+  void construirCuerpo_exportacionNoAplica_ocultaCodigoYMuestraEtiquetaEnPdf() {
+    SolicitudTimbrado s = new SolicitudTimbrado();
+    s.setRfc("AAAA111111AAA");
+    s.setRazonSocial("Empresa X");
+    s.setRegimenFiscal("601");
+    s.setUsoCfdi("G03");
+    s.setFormaPago("01");
+    s.setMetodoPago("PUE");
+    s.setItems(List.of());
+
+    Map<String, Object> cuerpo = crearAdapter().construirCuerpo(s);
+
+    assertThat(cuerpo).containsEntry("export", "01");
+    assertThat(cuerpo.get("pdf_options")).isEqualTo(Map.of("export_key", false));
+    assertThat(cuerpo).containsEntry("pdf_custom_section", "<p>Exportación: No aplica</p>");
   }
 }

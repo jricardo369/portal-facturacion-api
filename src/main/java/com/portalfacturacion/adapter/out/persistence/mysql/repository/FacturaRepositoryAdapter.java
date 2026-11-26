@@ -4,7 +4,6 @@ import com.portalfacturacion.adapter.out.persistence.mysql.entity.FacturaEntity;
 import com.portalfacturacion.adapter.out.persistence.mysql.entity.TicketFacturaEntity;
 import com.portalfacturacion.adapter.out.persistence.mysql.mapper.FacturaMapper;
 import com.portalfacturacion.domain.model.TicketFactura;
-import com.portalfacturacion.adapter.out.persistence.mysql.repository.TicketFacturaJpaRepository;
 import com.portalfacturacion.application.port.in.usuario.PagedResult;
 import com.portalfacturacion.application.port.out.persistence.FacturaRepositoryPort;
 import com.portalfacturacion.domain.model.Factura;

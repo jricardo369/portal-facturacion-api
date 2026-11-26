@@ -40,6 +40,8 @@ app:
     payment-form: "01"
     payment-method: "PUE"
     product-key: "90101500"
+    unit-key: "E48"
+    unit-name: "Unidad de servicio"
     motivo-cancelacion: "02"
     publico-general-periodicity: "day"
   correo:

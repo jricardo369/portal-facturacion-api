@@ -67,6 +67,8 @@ app:
     payment-form: "01"          # forma de pago SAT default (01 efectivo)
     payment-method: "PUE"
     product-key: "90101500"     # clave prod/serv SAT del concepto consolidado
+    unit-key: "E48"             # clave unidad SAT del concepto consolidado
+    unit-name: "Unidad de servicio"
     motivo-cancelacion: "02"
     publico-general-periodicity: "day"  # periodicidad factura global: day|week|fortnight|month|two_months
   correo:
