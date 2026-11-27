@@ -36,6 +36,7 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       new com.fasterxml.jackson.databind.ObjectMapper();
   private static final BigDecimal TASA_IVA = new BigDecimal("0.16");
   private static final BigDecimal TASA_ISR = new BigDecimal("0.0125");
+  private static final String CLAVE_PRODSERV = "90101500";
   private static final String EXPORTACION_NO_APLICA = "01";
   private static final String PDF_EXPORTACION_NO_APLICA = "<p>Exportación: No aplica</p>";
 
@@ -112,7 +113,7 @@ public class FacturapiTimbradoAdapter implements FacturapiTimbradoPort {
       for (ItemSolicitudTimbrado item : s.getItems()) {
         Map<String, Object> producto = new HashMap<>();
         producto.put("description", item.getDescripcion());
-        producto.put("product_key", item.getClave());
+        producto.put("product_key", CLAVE_PRODSERV);
         producto.put("unit_key", properties.getUnitKey());
         producto.put("unit_name", properties.getUnitName());
         producto.put("price", item.getPrecio());

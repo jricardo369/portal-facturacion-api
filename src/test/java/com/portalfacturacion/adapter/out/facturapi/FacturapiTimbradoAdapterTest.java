@@ -170,7 +170,7 @@ class FacturapiTimbradoAdapterTest {
     s.setFormaPago("01");
     s.setMetodoPago("PUE");
     ItemSolicitudTimbrado item = new ItemSolicitudTimbrado(BigDecimal.ONE, "Consumo",
-        new BigDecimal("1147.50"), "90101500");
+        new BigDecimal("1147.50"), "01010101");
     item.setIva(new BigDecimal("160.00"));
     item.setIsr(new BigDecimal("12.50"));
     s.setItems(List.of(item));
